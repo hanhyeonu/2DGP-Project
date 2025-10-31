@@ -7,7 +7,7 @@ def handle_events():
 
     event_list = get_events()
     for event in event_list:
-        if event in event_list:
+        if event in SDL_QUIT:
             running = False
         elif event.type == SDL_KEYDOWN and event.hey == SDLK_ESCAPE:
             running = False
@@ -15,7 +15,10 @@ def handle_events():
             pass
 
 def reset_world():
-    pass
+    global player
+
+    player = Player()
+    game_world.add_object(player, 1)
 
 def update_world():
     game_world.update()
@@ -24,6 +27,8 @@ def render_world():
     clear_canvas()
     game_world.render()
     update_canvas()
+
+running = True
 
 open_canvas()
 reset_world()

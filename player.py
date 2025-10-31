@@ -62,6 +62,9 @@ class Idle:
         elif self.player.face_dir == 4: # 위
             self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-368, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
 
+class Run:
+    pass
+
 class Player:
     def __init__(self):
         self.x, self.y = 400, 400
@@ -71,7 +74,14 @@ class Player:
         self.image = load_image('player.png')
         
         self.IDLE = Idle(self)
-        self.state_machine = StateMachine()
+        self.RUN = Run(self)
+        self.state_machine = StateMachine(
+            self.IDLE,
+            {
+                self.IDLE:{right_down:self.RUN,left_down:self.RUN,up_down:self.RUN,down_down:self.RUN,right_down and up_down:self.RUN,right_down and down_down:self.RUN,left_down and up_down:self.RUN,left_down and down_down:self.RUN},
+                self.RUN:{right_up and left_up and up_up and down_up:self.IDLE}
+            }
+        )
 
     def update(self):
         self.state_machine.update()
