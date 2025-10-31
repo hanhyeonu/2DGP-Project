@@ -1,4 +1,6 @@
 from pico2d import *
+from player import Player
+import game_world
 
 def handle_events():
     global running
