@@ -6,7 +6,21 @@ from state_machine import StateMachine
 
 
 class Idle:
-    pass
+
+    def __init__(self,player):
+        self.player = player
+
+    def enter(self, e):
+        pass
+
+    def exit(self, e):
+        pass
+
+    def do(self):
+        pass
+
+    def draw(self):
+        pass
 
 
 class Player:
