@@ -11,7 +11,7 @@ class Idle:
         self.player = player
 
     def enter(self, e):
-        pass
+        self.player.dir = 0
 
     def exit(self, e):
         pass
@@ -28,6 +28,7 @@ class Player:
         self.x, self.y = 400, 400
         self.frame = 0
         self.face_dir = 1
+        self.dir = 0
         self.image = load_image('player.png')
         
         self.IDLE = Idle(self)
