@@ -2,6 +2,7 @@ from pico2d import load_image, get_time
 from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP
 
 import game_world
+from state_machine import StateMachine
 
 
 class Idle:
@@ -16,6 +17,7 @@ class Player:
         self.image = load_image('player.png')
         
         self.IDLE = Idle(self)
+        self.state_machine = StateMachine()
 
     def update(self):
         pass
