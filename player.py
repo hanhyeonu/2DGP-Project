@@ -4,6 +4,31 @@ from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEY
 import game_world
 from state_machine import StateMachine
 
+def right_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_RIGHT
+
+def right_up(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_RIGHT
+
+def left_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_LEFT
+
+def left_up(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_LEFT
+
+def up_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_UP
+
+def up_up(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_UP
+
+def down_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_DOWN
+
+def down_up(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_DOWN
+
+
 
 class Idle:
 
@@ -17,11 +42,25 @@ class Idle:
         pass
 
     def do(self):
-        pass
+        self.player.frame = (self.player.frame + 1) % 2
 
     def draw(self):
-        pass
-
+        if self.player.face_dir == 1: # 오른쪽
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-272, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == 2: # 우상
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-400, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == 3: # 우하
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-336, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == -1: # 왼쪽
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-272, 28, 32, 0,'h', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == -2: # 좌상
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-400, 28, 32, 0,'h', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == -3: # 좌하
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-336, 28, 32, 0,'h', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == 0: # 아래
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-303, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
+        elif self.player.face_dir == 4: # 위
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512-368, 28, 32, 0,'', self.player.x, self.player.y, 56, 64)
 
 class Player:
     def __init__(self):
@@ -35,10 +74,10 @@ class Player:
         self.state_machine = StateMachine()
 
     def update(self):
-        pass
+        self.state_machine.update()
 
     def draw(self):
-        pass
+        self.state_machine.draw()
 
-    def handle_event(self):
-        pass
+    def handle_event(self,event):
+        self.state_machine.handle_state_event(('INPUT', event))
