@@ -88,6 +88,42 @@ class Idle:
 
 
 class Run:
+    # 각 방향별 정확한 스프라이트 좌표
+    # face_dir: 1=오른쪽, 0=아래, 3=우하, 4=위, 2=우상
+    # 음수는 반전: -1=왼쪽, -3=좌하, -2=좌상
+    SPRITE_COORDS = {
+        1: {  # 오른쪽 (1줄)
+            'y': 452,
+            'x': [16, 64, 112, 160, 207, 250, 298, 348, 397, 446],
+            'width': [32, 32, 32, 32, 33, 38, 38, 36, 35, 34],
+            'height': 48
+        },
+        0: {  # 아래 (2줄)
+            'y': 392,
+            'x': [8, 56, 104, 152, 199, 247, 295, 343, 391, 439],
+            'width': [32, 32, 32, 32, 35, 33, 32, 35, 33, 33],
+            'height': 55
+        },
+        3: {  # 우하 (3줄)
+            'y': 337,
+            'x': [16, 64, 112, 160, 208, 256, 300, 348, 400, 448],
+            'width': [32, 32, 32, 32, 32, 32, 36, 36, 32, 32],
+            'height': 55
+        },
+        4: {  # 위 (4줄)
+            'y': 272,
+            'x': [8, 56, 104, 152, 199, 247, 295, 343, 391, 439],
+            'width': [39, 39, 39, 39, 38, 38, 38, 38, 38, 37],
+            'height': 65
+        },
+        2: {  # 우상 (5줄)
+            'y': 102,
+            'x': [11, 59, 106, 154, 208, 251, 296, 348, 454, 483],
+            'width': [37, 37, 38, 38, 32, 37, 40, 36, 18, 21],
+            'height': 70
+        }
+    }
+
     def __init__(self, player):
         self.player = player
 
@@ -112,6 +148,13 @@ class Run:
             self.player.dir_y += 1
 
         # dir_x, dir_y에 따라 face_dir 설정 (8방향)
+        self.update_face_dir()
+
+    def exit(self, e):
+        pass
+
+    def update_face_dir(self):
+        """현재 dir_x, dir_y에 따라 face_dir 업데이트"""
         if self.player.dir_x > 0:  # 오른쪽
             if self.player.dir_y > 0:
                 self.player.face_dir = 2  # 우상
@@ -132,75 +175,46 @@ class Run:
             elif self.player.dir_y < 0:
                 self.player.face_dir = 0  # 아래
 
-    def exit(self, e):
-        pass
-
     def do(self):
         self.player.frame = (self.player.frame + 1) % 10  # 각 줄마다 10개의 스프라이트
-        self.player.x += self.player.dir_x * 3  # 이동 속도
-        self.player.y += self.player.dir_y * 3
+
+        # 대각선 이동시 속도 조정 (피타고라스)
+        speed = 3
+        if self.player.dir_x != 0 and self.player.dir_y != 0:
+            # 대각선 이동시 sqrt(2)로 나눠서 속도 정규화
+            speed = speed * 0.7071  # 1/sqrt(2) ≈ 0.7071
+
+        self.player.x += self.player.dir_x * speed
+        self.player.y += self.player.dir_y * speed
+
+        # 방향 업데이트 (키가 변경되었을 수 있음)
+        self.update_face_dir()
 
     def draw(self):
-        # 각 방향별로 스프라이트 좌표 설정
-        # player.png는 512x512 크기, 각 스프라이트는 28x32
-        # 맨 위 5줄: 오른쪽(1줄), 아래(2줄), 우하(3줄), 위(4줄), 우상(5줄)
+        # face_dir에 따라 적절한 방향 선택
+        # 음수는 반전
+        direction = abs(self.player.face_dir)
+        flip = 'h' if self.player.face_dir < 0 else ''
 
-        if self.player.face_dir == 1:  # 오른쪽 - 1번째 줄
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 48,  # x, y (맨 위 첫줄)
-                28, 32,  # width, height
-                0, '',  # 회전, 반전 없음
-                self.player.x, self.player.y, 56, 64  # 화면 위치와 크기
-            )
-        elif self.player.face_dir == 0:  # 아래 - 2번째 줄
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 80,
-                28, 32,
-                0, '',
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == 3:  # 우하 - 3번째 줄
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 112,
-                28, 32,
-                0, '',
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == 4:  # 위 - 4번째 줄
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 144,
-                28, 32,
-                0, '',
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == 2:  # 우상 - 5번째 줄
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 176,
-                28, 32,
-                0, '',
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == -1:  # 왼쪽 - 1번째 줄 반전
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 48,
-                28, 32,
-                0, 'h',  # 좌우 반전
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == -3:  # 좌하 - 3번째 줄 반전
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 112,
-                28, 32,
-                0, 'h',  # 좌우 반전
-                self.player.x, self.player.y, 56, 64
-            )
-        elif self.player.face_dir == -2:  # 좌상 - 5번째 줄 반전
-            self.player.image.clip_composite_draw(
-                self.player.frame * 28 + 30, 512 - 176,
-                28, 32,
-                0, 'h',  # 좌우 반전
-                self.player.x, self.player.y, 56, 64
-            )
+        # 해당 방향의 좌표 정보 가져오기
+        if direction in self.SPRITE_COORDS:
+            coords = self.SPRITE_COORDS[direction]
+            frame = self.player.frame
+
+            # 프레임이 범위 내에 있는지 확인
+            if frame < len(coords['x']):
+                x = coords['x'][frame]
+                y = coords['y']
+                width = coords['width'][frame]
+                height = coords['height']
+
+                self.player.image.clip_composite_draw(
+                    x, y,  # 소스 이미지의 x, y
+                    width, height,  # 소스 이미지의 width, height
+                    0, flip,  # 회전, 반전
+                    self.player.x, self.player.y,  # 화면 위치
+                    width, height  # 화면 크기
+                )
 
 
 class Player:
@@ -233,4 +247,24 @@ class Player:
         self.state_machine.draw()
 
     def handle_event(self, event):
+        # 이벤트 처리 - RUN 상태에서도 키 입력을 받아서 방향을 업데이트
+        if self.state_machine.cur_state == self.RUN:
+            if right_down(('INPUT', event)):
+                self.dir_x = min(self.dir_x + 1, 1)
+            elif right_up(('INPUT', event)):
+                self.dir_x = max(self.dir_x - 1, -1)
+            elif left_down(('INPUT', event)):
+                self.dir_x = max(self.dir_x - 1, -1)
+            elif left_up(('INPUT', event)):
+                self.dir_x = min(self.dir_x + 1, 1)
+
+            if up_down(('INPUT', event)):
+                self.dir_y = min(self.dir_y + 1, 1)
+            elif up_up(('INPUT', event)):
+                self.dir_y = max(self.dir_y - 1, -1)
+            elif down_down(('INPUT', event)):
+                self.dir_y = max(self.dir_y - 1, -1)
+            elif down_up(('INPUT', event)):
+                self.dir_y = min(self.dir_y + 1, 1)
+
         self.state_machine.handle_state_event(('INPUT', event))
