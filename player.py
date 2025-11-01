@@ -77,7 +77,7 @@ class Idle:
             self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512 - 400, 28, 32, 0, 'h',
                                                   self.player.x, self.player.y, 56, 64)
         elif self.player.face_dir == -3:  # 좌하
-            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512 - 336, 28, 32, 0, 'h',
+            self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512 - 338, 28, 32, 0, 'h',
                                                   self.player.x, self.player.y, 56, 64)
         elif self.player.face_dir == 0:  # 아래
             self.player.image.clip_composite_draw(self.player.frame * 28 + 450, 512 - 303, 28, 32, 0, '', self.player.x,
@@ -88,39 +88,38 @@ class Idle:
 
 
 class Run:
-    # 각 방향별 정확한 스프라이트 좌표
-    # face_dir: 1=오른쪽, 0=아래, 3=우하, 4=위, 2=우상
-    # 음수는 반전: -1=왼쪽, -3=좌하, -2=좌상
+    # 빨간색 박스로 표시된 정확한 스프라이트 좌표
+    # 각 줄마다 48픽셀 높이, 10개의 스프라이트(각 48픽셀 너비)
     SPRITE_COORDS = {
         1: {  # 오른쪽 (1줄)
-            'y': 452,
-            'x': [16, 64, 112, 160, 207, 250, 298, 348, 397, 446],
-            'width': [32, 32, 32, 32, 33, 38, 38, 36, 35, 34],
-            'height': 48
+            'y': 464,
+            'height': 48,
+            'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
+            'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
         0: {  # 아래 (2줄)
-            'y': 392,
-            'x': [8, 56, 104, 152, 199, 247, 295, 343, 391, 439],
-            'width': [32, 32, 32, 32, 35, 33, 32, 35, 33, 33],
-            'height': 55
+            'y': 416,
+            'height': 48,
+            'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
+            'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
         3: {  # 우하 (3줄)
-            'y': 337,
-            'x': [16, 64, 112, 160, 208, 256, 300, 348, 400, 448],
-            'width': [32, 32, 32, 32, 32, 32, 36, 36, 32, 32],
-            'height': 55
+            'y': 368,
+            'height': 48,
+            'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
+            'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
         4: {  # 위 (4줄)
-            'y': 272,
-            'x': [8, 56, 104, 152, 199, 247, 295, 343, 391, 439],
-            'width': [39, 39, 39, 39, 38, 38, 38, 38, 38, 37],
-            'height': 65
+            'y': 320,
+            'height': 48,
+            'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
+            'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
         2: {  # 우상 (5줄)
-            'y': 102,
-            'x': [11, 59, 106, 154, 208, 251, 296, 348, 454, 483],
-            'width': [37, 37, 38, 38, 32, 37, 40, 36, 18, 21],
-            'height': 70
+            'y': 272,
+            'height': 48,
+            'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
+            'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         }
     }
 
@@ -154,7 +153,6 @@ class Run:
         pass
 
     def update_face_dir(self):
-        """현재 dir_x, dir_y에 따라 face_dir 업데이트"""
         if self.player.dir_x > 0:  # 오른쪽
             if self.player.dir_y > 0:
                 self.player.face_dir = 2  # 우상
@@ -213,7 +211,7 @@ class Run:
                     width, height,  # 소스 이미지의 width, height
                     0, flip,  # 회전, 반전
                     self.player.x, self.player.y,  # 화면 위치
-                    width, height  # 화면 크기
+                    width * 2, height * 2  # 화면 크기 (2배)
                 )
 
 
