@@ -68,25 +68,24 @@ class Idle:
 
     def draw(self):
         if self.player.face_dir == 1:  # 오른쪽
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, '', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == 2:  # 우상
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, '', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == 3:  # 우하
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, '', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == -1:  # 왼쪽
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, 'h', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == -2:  # 좌상
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, 'h', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == -3:  # 좌하
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, 'h', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == 0:  # 아래
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-303, 28, 32, 0, '', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-303, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
         elif self.player.face_dir == 4:  # 위
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-368, 28, 32, 0, '', self.player.x, self.player.y, 56, 64)
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-368, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
 
 
 class Run:
-    # 빨간색 박스로 표시된 정확한 스프라이트 좌표
     SPRITE_COORDS = {
         1: {  # 오른쪽
             'y': 464,
@@ -148,7 +147,6 @@ class Run:
         pass
 
     def update_face_dir(self):
-        """현재 dir_x, dir_y에 따라 face_dir 업데이트"""
         if self.player.dir_x > 0:
             if self.player.dir_y > 0:
                 self.player.face_dir = 2  # 우상
@@ -201,7 +199,7 @@ class Run:
                     width, height,
                     0, flip,
                     self.player.x, self.player.y,
-                    width * 2, height * 2
+                    width, height
                 )
 
 
