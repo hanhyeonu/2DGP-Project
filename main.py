@@ -2,7 +2,7 @@ from pico2d import open_canvas, close_canvas
 import game_framework
 import play_mode as start_mode
 
-open_canvas(1200, 900)
+open_canvas(1024, 1024)
 game_framework.run(start_mode)
 close_canvas()
 

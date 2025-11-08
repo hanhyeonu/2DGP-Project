@@ -4,9 +4,10 @@ import game_framework
 import game_world
 
 from player import Player
+from background import Background
 
 player = None
-
+background = None
 
 def handle_events():
     event_list = get_events()
@@ -20,7 +21,10 @@ def handle_events():
 
 
 def init():
-    global player
+    global player, background
+
+    background = Background()
+    game_world.add_object(background, 0)
 
     player = Player()
     game_world.add_object(player, 1)
