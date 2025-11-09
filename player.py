@@ -5,6 +5,7 @@ import game_world
 import game_framework
 from state_machine import StateMachine
 from arrow import Arrow
+from skill import BowSkill
 import math
 
 
@@ -42,6 +43,7 @@ def down_up(e):
 
 def z_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_z
+
 
 def x_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_x
