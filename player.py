@@ -1,5 +1,5 @@
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x
 
 import game_world
 import game_framework
@@ -42,6 +42,9 @@ def down_up(e):
 
 def z_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_z
+
+def x_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_x
 
 
 PIXEL_PER_METER = (10.0 / 0.3)
@@ -226,6 +229,9 @@ class Player:
         self.show_bow = False
         self.bow_timer = 0
 
+        self.current_weapon = 'bow'
+        self.skill = BowSkill(self)
+
         self.IDLE = Idle(self)
         self.RUN = Run(self)
         self.state_machine = StateMachine(
@@ -250,6 +256,9 @@ class Player:
             if self.bow_timer <= 0:
                 self.show_bow = False
 
+        if self.skill and self.skill.is_active():
+            self.skill.update()
+
     def handle_event(self, event):
         if self.state_machine.cur_state == self.RUN:
             if right_down(('INPUT', event)):
@@ -272,6 +281,9 @@ class Player:
 
         if z_down(('INPUT', event)):
             self.fire_arrow()
+
+        if x_down(('INPUT', event)):
+            self.use_skill()
 
         self.state_machine.handle_state_event(('INPUT', event))
 
