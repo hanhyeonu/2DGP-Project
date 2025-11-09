@@ -331,3 +331,7 @@ class Player:
         offset_x, offset_y = offset_map.get(self.face_dir, (20, 0))
         arrow = Arrow(self.x + offset_x, self.y + offset_y, self.face_dir)
         game_world.add_object(arrow, 1)
+
+    def use_skill(self):
+        if self.skill and not self.skill.is_active():
+            self.skill.activate()
