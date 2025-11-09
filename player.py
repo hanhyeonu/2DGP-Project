@@ -1,9 +1,11 @@
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z
 
 import game_world
 import game_framework
 from state_machine import StateMachine
+from arrow import Arrow
+import math
 
 
 def right_down(e):
@@ -38,14 +40,16 @@ def down_up(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_DOWN
 
 
-# Player Speed
-PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel = 30 cm
-RUN_SPEED_KMPH = 20.0  # Km / Hour
+def z_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_z
+
+
+PIXEL_PER_METER = (10.0 / 0.3)
+RUN_SPEED_KMPH = 20.0
 RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
 RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
 RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 
-# Player Action Speed
 TIME_PER_ACTION = 0.5
 ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
 FRAMES_PER_ACTION = 10
@@ -67,51 +71,59 @@ class Idle:
         self.player.frame = (self.player.frame + 2 * ACTION_PER_TIME * game_framework.frame_time) % 2
 
     def draw(self):
-        if self.player.face_dir == 1:  # 오른쪽
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == 2:  # 우상
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == 3:  # 우하
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == -1:  # 왼쪽
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-272, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == -2:  # 좌상
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-400, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == -3:  # 좌하
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-336, 28, 32, 0, 'h', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == 0:  # 아래
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-303, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
-        elif self.player.face_dir == 4:  # 위
-            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512-368, 28, 32, 0, '', self.player.x, self.player.y, 28, 32)
+        if self.player.face_dir == 1:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, '',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == 2:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, '',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == 3:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, '',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == -1:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, 'h',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == -2:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, 'h',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == -3:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, 'h',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == 0:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 303, 28, 32, 0, '',
+                                                  self.player.x, self.player.y, 28, 32)
+        elif self.player.face_dir == 4:
+            self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 368, 28, 32, 0, '',
+                                                  self.player.x, self.player.y, 28, 32)
 
 
 class Run:
     SPRITE_COORDS = {
-        1: {  # 오른쪽
+        1: {
             'y': 464,
             'height': 48,
             'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
             'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
-        0: {  # 아래
+        0: {
             'y': 416,
             'height': 48,
             'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
             'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
-        3: {  # 우하
+        3: {
             'y': 368,
             'height': 48,
             'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
             'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
-        4: {  # 위
+        4: {
             'y': 320,
             'height': 48,
             'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
             'width': [48, 48, 48, 48, 48, 48, 48, 48, 48, 48]
         },
-        2: {  # 우상
+        2: {
             'y': 272,
             'height': 48,
             'x': [0, 48, 96, 144, 192, 240, 288, 336, 384, 432],
@@ -149,31 +161,30 @@ class Run:
     def update_face_dir(self):
         if self.player.dir_x > 0:
             if self.player.dir_y > 0:
-                self.player.face_dir = 2  # 우상
+                self.player.face_dir = 2
             elif self.player.dir_y < 0:
-                self.player.face_dir = 3  # 우하
+                self.player.face_dir = 3
             else:
-                self.player.face_dir = 1  # 오른쪽
+                self.player.face_dir = 1
         elif self.player.dir_x < 0:
             if self.player.dir_y > 0:
-                self.player.face_dir = -2  # 좌상
+                self.player.face_dir = -2
             elif self.player.dir_y < 0:
-                self.player.face_dir = -3  # 좌하
+                self.player.face_dir = -3
             else:
-                self.player.face_dir = -1  # 왼쪽
+                self.player.face_dir = -1
         else:
             if self.player.dir_y > 0:
-                self.player.face_dir = 4  # 위
+                self.player.face_dir = 4
             elif self.player.dir_y < 0:
-                self.player.face_dir = 0  # 아래
+                self.player.face_dir = 0
 
     def do(self):
         self.player.frame = (self.player.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 10
 
-        # 대각선 이동시 속도 정규화
         speed = RUN_SPEED_PPS * game_framework.frame_time
         if self.player.dir_x != 0 and self.player.dir_y != 0:
-            speed = speed * 0.7071  # 1/sqrt(2)
+            speed = speed * 0.7071
 
         self.player.x += self.player.dir_x * speed
         self.player.y += self.player.dir_y * speed
@@ -207,10 +218,13 @@ class Player:
     def __init__(self):
         self.x, self.y = 400, 400
         self.frame = 0
-        self.face_dir = 1  # 1:우, 2:우상, 3:우하, -1:좌, -2:좌상, -3:좌하, 0:하, 4:상
+        self.face_dir = 1
         self.dir_x = 0
         self.dir_y = 0
         self.image = load_image('player.png')
+        self.bow_image = load_image('item_bow_C.png')
+        self.show_bow = False
+        self.bow_timer = 0
 
         self.IDLE = Idle(self)
         self.RUN = Run(self)
@@ -231,8 +245,12 @@ class Player:
     def update(self):
         self.state_machine.update()
 
+        if self.show_bow:
+            self.bow_timer -= game_framework.frame_time
+            if self.bow_timer <= 0:
+                self.show_bow = False
+
     def handle_event(self, event):
-        # RUN 상태에서도 키 입력을 받아서 방향을 업데이트
         if self.state_machine.cur_state == self.RUN:
             if right_down(('INPUT', event)):
                 self.dir_x = min(self.dir_x + 1, 1)
@@ -252,7 +270,64 @@ class Player:
             elif down_up(('INPUT', event)):
                 self.dir_y = min(self.dir_y + 1, 1)
 
+        if z_down(('INPUT', event)):
+            self.fire_arrow()
+
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self):
         self.state_machine.draw()
+
+        if self.show_bow:
+            bow_angle = 0
+            bow_x_offset = 0
+            bow_y_offset = 0
+
+            if self.face_dir == 1:
+                bow_angle = math.pi
+                bow_x_offset, bow_y_offset = 20, 0
+            elif self.face_dir == -1:
+                bow_angle = 0
+                bow_x_offset, bow_y_offset = -20, 0
+            elif self.face_dir == 2:
+                bow_angle = math.pi * 5 / 4
+                bow_x_offset, bow_y_offset = 15, 15
+            elif self.face_dir == -2:
+                bow_angle = math.pi * 7 / 4
+                bow_x_offset, bow_y_offset = -15, 15
+            elif self.face_dir == 3:
+                bow_angle = math.pi * 3 / 4
+                bow_x_offset, bow_y_offset = 15, -15
+            elif self.face_dir == -3:
+                bow_angle = math.pi / 4
+                bow_x_offset, bow_y_offset = -15, -15
+            elif self.face_dir == 4:
+                bow_angle = math.pi * 3 / 2
+                bow_x_offset, bow_y_offset = 0, 20
+            elif self.face_dir == 0:
+                bow_angle = math.pi / 2
+                bow_x_offset, bow_y_offset = 0, -20
+
+            self.bow_image.composite_draw(bow_angle, '',
+                                          self.x + bow_x_offset,
+                                          self.y + bow_y_offset,
+                                          30, 30)
+
+    def fire_arrow(self):
+        self.show_bow = True
+        self.bow_timer = 0.1
+
+        offset_map = {
+            1: (20, 0),
+            2: (15, 15),
+            3: (15, -15),
+            4: (0, 20),
+            0: (0, -20),
+            -1: (-20, 0),
+            -2: (-15, 15),
+            -3: (-15, -15)
+        }
+
+        offset_x, offset_y = offset_map.get(self.face_dir, (20, 0))
+        arrow = Arrow(self.x + offset_x, self.y + offset_y, self.face_dir)
+        game_world.add_object(arrow, 1)
