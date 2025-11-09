@@ -15,7 +15,7 @@ MAX_DISTANCE = 300
 class Arrow:
     image = None
 
-    def __init__(self, x, y, face_dir):
+    def __init__(self, x, y, face_dir, custom_angle=None):
         if Arrow.image == None:
             Arrow.image = load_image('arrow.png')
 
@@ -27,35 +27,40 @@ class Arrow:
         self.dir_y = 0
         self.angle = 0
 
-        if face_dir == 1:
-            self.dir_x, self.dir_y = 1, 0
-            self.angle = 0
-        elif face_dir == -1:
-            self.dir_x, self.dir_y = -1, 0
-            self.angle = math.pi
-        elif face_dir == 2:
-            self.dir_x, self.dir_y = 1, 1
-            self.angle = math.pi / 4
-        elif face_dir == -2:
-            self.dir_x, self.dir_y = -1, 1
-            self.angle = math.pi * 3 / 4
-        elif face_dir == 3:
-            self.dir_x, self.dir_y = 1, -1
-            self.angle = -math.pi / 4
-        elif face_dir == -3:
-            self.dir_x, self.dir_y = -1, -1
-            self.angle = -math.pi * 3 / 4
-        elif face_dir == 4:
-            self.dir_x, self.dir_y = 0, 1
-            self.angle = math.pi / 2
-        elif face_dir == 0:
-            self.dir_x, self.dir_y = 0, -1
-            self.angle = -math.pi / 2
+        if custom_angle is not None:
+            self.angle = custom_angle
+            self.dir_x = math.cos(custom_angle)
+            self.dir_y = math.sin(custom_angle)
+        else:
+            if face_dir == 1:
+                self.dir_x, self.dir_y = 1, 0
+                self.angle = 0
+            elif face_dir == -1:
+                self.dir_x, self.dir_y = -1, 0
+                self.angle = math.pi
+            elif face_dir == 2:
+                self.dir_x, self.dir_y = 1, 1
+                self.angle = math.pi / 4
+            elif face_dir == -2:
+                self.dir_x, self.dir_y = -1, 1
+                self.angle = math.pi * 3 / 4
+            elif face_dir == 3:
+                self.dir_x, self.dir_y = 1, -1
+                self.angle = -math.pi / 4
+            elif face_dir == -3:
+                self.dir_x, self.dir_y = -1, -1
+                self.angle = -math.pi * 3 / 4
+            elif face_dir == 4:
+                self.dir_x, self.dir_y = 0, 1
+                self.angle = math.pi / 2
+            elif face_dir == 0:
+                self.dir_x, self.dir_y = 0, -1
+                self.angle = -math.pi / 2
 
-        length = math.sqrt(self.dir_x ** 2 + self.dir_y ** 2)
-        if length > 0:
-            self.dir_x /= length
-            self.dir_y /= length
+            length = math.sqrt(self.dir_x ** 2 + self.dir_y ** 2)
+            if length > 0:
+                self.dir_x /= length
+                self.dir_y /= length
 
     def update(self):
         distance = math.sqrt((self.x - self.start_x) ** 2 + (self.y - self.start_y) ** 2)
