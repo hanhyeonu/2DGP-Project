@@ -1,5 +1,5 @@
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i
 
 import game_world
 import game_framework
@@ -47,6 +47,9 @@ def z_down(e):
 
 def x_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_x
+
+def i_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_i
 
 
 PIXEL_PER_METER = (10.0 / 0.3)
@@ -228,8 +231,10 @@ class Player:
         self.dir_y = 0
         self.image = load_image('player.png')
         self.bow_image = load_image('item_bow_C.png')
+        self.inventory_image = load_image('inventory.png')
         self.show_bow = False
         self.bow_timer = 0
+        self.show_inventory = False
 
         self.current_weapon = 'bow'
         self.skill = BowSkill(self)
@@ -287,6 +292,9 @@ class Player:
         if x_down(('INPUT', event)):
             self.use_skill()
 
+        if i_down(('INPUT', event)):
+            self.toggle_inventory()
+
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self):
@@ -327,6 +335,9 @@ class Player:
                                           self.y + bow_y_offset,
                                           30, 30)
 
+        if self.show_inventory:
+            self.inventory_image.draw(512, 512, 512, 512)
+
     def fire_arrow(self):
         self.show_bow = True
         self.bow_timer = 0.1
@@ -349,3 +360,6 @@ class Player:
     def use_skill(self):
         if self.skill and not self.skill.is_active():
             self.skill.activate()
+
+    def toggle_inventory(self):
+        self.show_inventory = not self.show_inventory
