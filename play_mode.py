@@ -9,6 +9,7 @@ from background import Background
 player = None
 background = None
 
+
 def handle_events():
     event_list = get_events()
     for event in event_list:
@@ -27,7 +28,7 @@ def init():
     game_world.add_object(background, 0)
 
     player = Player()
-    game_world.add_object(player, 1)
+    game_world.add_object(player, 2)
 
 
 def update():
