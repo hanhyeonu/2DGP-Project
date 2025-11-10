@@ -1,11 +1,12 @@
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2
 
 import game_world
 import game_framework
 from state_machine import StateMachine
 from arrow import Arrow
 from skill import BowSkill
+from sword import Sword
 import math
 
 
@@ -50,6 +51,13 @@ def x_down(e):
 
 def i_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_i
+
+def key_1_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_1
+
+def key_2_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_2
+
 
 
 PIXEL_PER_METER = (10.0 / 0.3)
@@ -287,13 +295,22 @@ class Player:
                 self.dir_y = min(self.dir_y + 1, 1)
 
         if z_down(('INPUT', event)):
-            self.fire_arrow()
+            if self.current_weapon == 'bow':
+                self.fire_arrow()
+            elif self.current_weapon == 'sword':
+                self.sword_attack()
 
         if x_down(('INPUT', event)):
             self.use_skill()
 
         if i_down(('INPUT', event)):
             self.toggle_inventory()
+
+        if key_1_down(('INPUT', event)):
+            self.current_weapon = 'sword'
+
+        if key_2_down(('INPUT', event)):
+            self.current_weapon = 'bow'
 
         self.state_machine.handle_state_event(('INPUT', event))
 
@@ -363,3 +380,7 @@ class Player:
 
     def toggle_inventory(self):
         self.show_inventory = not self.show_inventory
+
+    def sword_attack(self):
+        sword = Sword(self.x, self.y, self.face_dir)
+        game_world.add_object(sword, 1)
