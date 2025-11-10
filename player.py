@@ -1,5 +1,5 @@
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2, SDLK_m
 
 import game_world
 import game_framework
@@ -58,6 +58,8 @@ def key_1_down(e):
 def key_2_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_2
 
+def m_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_m
 
 
 PIXEL_PER_METER = (10.0 / 0.3)
@@ -244,6 +246,8 @@ class Player:
         self.show_bow = False
         self.bow_timer = 0
         self.show_inventory = False
+        self.worldmap_image = load_image('worldmap.png')
+        self.show_worldmap = False
 
         self.current_weapon = 'bow'
         self.skill = BowSkill(self)
@@ -314,6 +318,9 @@ class Player:
         if key_2_down(('INPUT', event)):
             self.current_weapon = 'bow'
 
+        if m_down(('INPUT', event)):
+            self.show_worldmap = not self.show_worldmap
+
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self):
@@ -356,6 +363,9 @@ class Player:
 
         if self.show_inventory:
             self.inventory_image.draw(512, 512, 512, 512)
+
+        if self.show_worldmap:
+            self.worldmap_image.draw(512, 512, 1024, 576)
 
     def fire_arrow(self):
         self.show_bow = True
