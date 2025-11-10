@@ -198,12 +198,13 @@ class Run:
     def do(self):
         self.player.frame = (self.player.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 10
 
-        speed = RUN_SPEED_PPS * game_framework.frame_time
-        if self.player.dir_x != 0 and self.player.dir_y != 0:
-            speed = speed * 0.7071
+        if not self.player.is_attacking:
+            speed = RUN_SPEED_PPS * game_framework.frame_time
+            if self.player.dir_x != 0 and self.player.dir_y != 0:
+                speed = speed * 0.7071
 
-        self.player.x += self.player.dir_x * speed
-        self.player.y += self.player.dir_y * speed
+            self.player.x += self.player.dir_x * speed
+            self.player.y += self.player.dir_y * speed
 
         self.update_face_dir()
 
@@ -246,6 +247,7 @@ class Player:
 
         self.current_weapon = 'bow'
         self.skill = BowSkill(self)
+        self.is_attacking = False
 
         self.IDLE = Idle(self)
         self.RUN = Run(self)
@@ -382,5 +384,6 @@ class Player:
         self.show_inventory = not self.show_inventory
 
     def sword_attack(self):
-        sword = Sword(self.x, self.y, self.face_dir)
+        self.is_attacking = True
+        sword = Sword(self.x, self.y, self.face_dir, self)
         game_world.add_object(sword, 1)
