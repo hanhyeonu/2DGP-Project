@@ -1,4 +1,4 @@
-from pico2d import load_image, get_time
+from pico2d import load_image, get_time, draw_rectangle
 from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2, SDLK_m
 
 import game_world
@@ -366,6 +366,11 @@ class Player:
 
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
+
+        draw_rectangle(*self.get_bb())
+
+    def get_bb(self):
+        return self.x - 20, self.y - 20, self.x + 20, self.y + 20
 
     def fire_arrow(self):
         self.show_bow = True

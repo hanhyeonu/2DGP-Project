@@ -1,5 +1,5 @@
 """
-스프라이트 시트 분석 도구
+스프라이트 시트 분석 도구 (개선 버전)
 - PNG 파일에서 개별 스프라이트의 경계를 자동으로 찾아냅니다
 - 투명도(alpha channel)를 기반으로 스프라이트를 구분합니다
 """
@@ -7,13 +7,16 @@
 from PIL import Image
 import sys
 
-def analyze_sprite_sheet(image_path, threshold=10):
+
+def analyze_sprite_sheet(image_path, threshold=10, row_gap=2, frame_gap=2):
     """
     스프라이트 시트를 분석하여 각 스프라이트의 좌표를 찾습니다.
 
     Args:
         image_path: PNG 파일 경로
         threshold: 투명도 임계값 (0-255)
+        row_gap: 행을 구분하는 최소 간격 (픽셀)
+        frame_gap: 프레임을 구분하는 최소 간격 (픽셀)
     """
     try:
         img = Image.open(image_path)
@@ -21,63 +24,48 @@ def analyze_sprite_sheet(image_path, threshold=10):
         width, height = img.size
         pixels = img.load()
 
+        print("=" * 80)
+        print("스프라이트 시트 분석 결과 (개선 버전)")
+        print("=" * 80)
         print(f"이미지 크기: {width}x{height}")
         print(f"이미지 경로: {image_path}")
-        print("-" * 60)
+        print("=" * 80)
+        print()
 
-        # 투명하지 않은 픽셀 찾기
-        non_transparent_pixels = []
+        # 각 y 좌표에 투명하지 않은 픽셀이 있는지 체크
+        rows_with_content = {}
         for y in range(height):
             for x in range(width):
                 r, g, b, a = pixels[x, y]
-                if a > threshold:  # 알파값이 임계값보다 크면 투명하지 않음
-                    non_transparent_pixels.append((x, y))
+                if a > threshold:
+                    if y not in rows_with_content:
+                        rows_with_content[y] = []
+                    rows_with_content[y].append(x)
 
-        if not non_transparent_pixels:
+        if not rows_with_content:
             print("투명하지 않은 픽셀을 찾을 수 없습니다.")
-            return
+            return []
 
-        # 전체 스프라이트 영역의 경계 찾기
-        min_x = min(p[0] for p in non_transparent_pixels)
-        max_x = max(p[0] for p in non_transparent_pixels)
-        min_y = min(p[1] for p in non_transparent_pixels)
-        max_y = max(p[1] for p in non_transparent_pixels)
-
-        print("전체 스프라이트 영역:")
-        print(f"  X: {min_x} ~ {max_x} (width: {max_x - min_x + 1})")
-        print(f"  Y: {min_y} ~ {max_y} (height: {max_y - min_y + 1})")
-        print()
-
-        # 행 단위로 스프라이트 찾기
-        print("행별 스프라이트 분석:")
-        rows = {}
-        for x, y in non_transparent_pixels:
-            if y not in rows:
-                rows[y] = []
-            rows[y].append(x)
-
-        # 연속된 y 좌표를 그룹화 (같은 행)
+        # y 좌표를 그룹화하여 행(row) 생성
         row_groups = []
-        current_group = []
+        current_row = []
         prev_y = -1000
 
-        for y in sorted(rows.keys()):
-            if y - prev_y > 1:  # 새로운 행 시작
-                if current_group:
-                    row_groups.append(current_group)
-                current_group = [y]
+        for y in sorted(rows_with_content.keys()):
+            if y - prev_y > row_gap:  # 새로운 행 시작
+                if current_row:
+                    row_groups.append(current_row)
+                current_row = [y]
             else:
-                current_group.append(y)
+                current_row.append(y)
             prev_y = y
 
-        if current_group:
-            row_groups.append(current_group)
+        if current_row:
+            row_groups.append(current_row)
 
-        print(f"발견된 행 개수: {len(row_groups)}")
-        print()
-
-        # 각 행의 스프라이트 분석
-        for i, row_ys in enumerate(row_groups):
+        # 각 행 분석
+        analyzed_rows = []
+        for row_idx, row_ys in enumerate(row_groups):
             row_min_y = min(row_ys)
             row_max_y = max(row_ys)
             row_height = row_max_y - row_min_y + 1
@@ -85,130 +73,105 @@ def analyze_sprite_sheet(image_path, threshold=10):
             # 이 행의 모든 x 좌표 수집
             row_x_coords = []
             for y in row_ys:
-                row_x_coords.extend(rows[y])
-
-            # x 좌표 기준으로 스프라이트 구분
+                row_x_coords.extend(rows_with_content[y])
             row_x_coords = sorted(set(row_x_coords))
 
-            # 연속된 x 좌표를 그룹화 (같은 스프라이트)
-            sprite_groups = []
-            current_sprite = []
+            # x 좌표를 그룹화하여 프레임 생성
+            frame_groups = []
+            current_frame = []
             prev_x = -1000
 
             for x in row_x_coords:
-                if x - prev_x > 1:  # 새로운 스프라이트 시작
-                    if current_sprite:
-                        sprite_groups.append(current_sprite)
-                    current_sprite = [x]
+                if x - prev_x > frame_gap:  # 새로운 프레임 시작
+                    if current_frame:
+                        frame_groups.append(current_frame)
+                    current_frame = [x]
                 else:
-                    current_sprite.append(x)
+                    current_frame.append(x)
                 prev_x = x
 
-            if current_sprite:
-                sprite_groups.append(current_sprite)
+            if current_frame:
+                frame_groups.append(current_frame)
 
-            print(f"행 {i + 1}:")
-            print(f"  Y 범위: {row_min_y} ~ {row_max_y} (height: {row_height})")
-            print(f"  스프라이트 개수: {len(sprite_groups)}")
+            # 프레임 정보 수집
+            frames_info = []
+            for frame_xs in frame_groups:
+                frame_min_x = min(frame_xs)
+                frame_max_x = max(frame_xs)
+                frame_width = frame_max_x - frame_min_x + 1
+                frames_info.append({'x': frame_min_x, 'width': frame_width})
 
-            for j, sprite_xs in enumerate(sprite_groups):
-                sprite_min_x = min(sprite_xs)
-                sprite_max_x = max(sprite_xs)
-                sprite_width = sprite_max_x - sprite_min_x + 1
+            # pico2d 좌표계로 변환
+            pico_y = height - row_max_y - 1
 
-                print(f"    스프라이트 {j + 1}: x={sprite_min_x}, y={row_min_y}, width={sprite_width}, height={row_height}")
+            analyzed_rows.append({
+                'row_idx': row_idx + 1,
+                'y': pico_y,
+                'height': row_height,
+                'frames': frames_info
+            })
 
-                # pico2d clip_composite_draw 좌표계로 변환 (bottom-left origin)
-                pico_y = height - row_max_y - 1
-                print(f"      pico2d 좌표: x={sprite_min_x}, y={pico_y}, w={sprite_width}, h={row_height}")
+        # 결과 출력
+        print_analysis_results(analyzed_rows)
 
-            print()
-
-        # 규칙적인 패턴 감지
-        print("-" * 60)
-        print("규칙적인 패턴 분석:")
-        detect_regular_pattern(row_groups, rows, width, height)
+        return analyzed_rows
 
     except FileNotFoundError:
         print(f"파일을 찾을 수 없습니다: {image_path}")
+        return []
     except Exception as e:
         print(f"오류 발생: {e}")
         import traceback
         traceback.print_exc()
+        return []
 
 
-def detect_regular_pattern(row_groups, rows, img_width, img_height):
-    """
-    규칙적으로 배치된 스프라이트 패턴을 감지합니다.
-    """
-    if not row_groups:
-        return
+def print_analysis_results(analyzed_rows):
+    """분석 결과를 보기 좋게 출력"""
 
-    # 첫 번째 행의 스프라이트 분석
-    first_row_ys = row_groups[0]
-    row_height = max(first_row_ys) - min(first_row_ys) + 1
+    # 기본 출력
+    for row in analyzed_rows:
+        print("─" * 80)
+        print(f"행 {row['row_idx']}:")
+        print(f"  y좌표: {row['y']} (pico2d 좌표계), height: {row['height']}")
+        print(f"  프레임 개수: {len(row['frames'])}")
+        print(f"  각 프레임:")
+        for frame_idx, frame in enumerate(row['frames']):
+            print(f"    프레임 {frame_idx}: x={frame['x']}, width={frame['width']}")
+        print()
 
-    row_x_coords = []
-    for y in first_row_ys:
-        row_x_coords.extend(rows[y])
-    row_x_coords = sorted(set(row_x_coords))
+    print("=" * 80)
+    print("Python Dict 형태 출력:")
+    print("=" * 80)
+    print()
 
-    # 연속된 x 좌표를 그룹화
-    sprite_groups = []
-    current_sprite = []
-    prev_x = -1000
+    # Python dict 출력
+    for row in analyzed_rows:
+        print(f"# 행 {row['row_idx']}")
+        print(f"ROW_{row['row_idx']}_COORDS = {{")
+        print(f"    'y': {row['y']},")
+        print(f"    'height': {row['height']},")
+        print(f"    'frames': {len(row['frames'])},")
 
-    for x in row_x_coords:
-        if x - prev_x > 1:
-            if current_sprite:
-                sprite_groups.append(current_sprite)
-            current_sprite = [x]
-        else:
-            current_sprite.append(x)
-        prev_x = x
+        x_coords = [frame['x'] for frame in row['frames']]
+        widths = [frame['width'] for frame in row['frames']]
 
-    if current_sprite:
-        sprite_groups.append(current_sprite)
+        print(f"    'x': {x_coords},")
+        print(f"    'width': {widths}")
+        print("}")
+        print()
 
-    if len(sprite_groups) > 1:
-        # 스프라이트 너비 확인
-        widths = [max(g) - min(g) + 1 for g in sprite_groups]
-        sprite_width = widths[0]
-
-        # 모든 스프라이트가 같은 너비인지 확인
-        if all(w == sprite_width for w in widths):
-            # 간격 계산
-            starts = [min(g) for g in sprite_groups]
-            if len(starts) > 1:
-                gap = starts[1] - starts[0]
-
-                print(f"규칙적인 패턴 감지됨!")
-                print(f"  스프라이트 크기: {sprite_width}x{row_height}")
-                print(f"  스프라이트 간격: {gap} (sprite_width + padding)")
-                print(f"  시작 X 좌표: {starts[0]}")
-                print(f"  행당 스프라이트 개수: {len(sprite_groups)}")
-                print()
-                print("코드 예시:")
-                print(f"# 규칙적인 패턴의 경우")
-                print(f"frame_width = {sprite_width}")
-                print(f"frame_height = {row_height}")
-                print(f"frames_per_row = {len(sprite_groups)}")
-                print(f"frame_x = frame * {gap}")
-                print(f"frame_y = row * {row_height}")
-                print()
-                print("# clip_composite_draw 사용 예시:")
-                print(f"image.clip_composite_draw(")
-                print(f"    frame * {gap}, # x (left)")
-                print(f"    frame_y,       # y (bottom)")
-                print(f"    {sprite_width}, # width")
-                print(f"    {row_height},  # height")
-                print(f"    0, '',         # angle, flip")
-                print(f"    screen_x, screen_y, # 화면 좌표")
-                print(f"    {sprite_width}, {row_height}  # 출력 크기")
-                print(f")")
-                return
-
-    print("불규칙한 패턴입니다. 수동으로 좌표를 지정해야 합니다.")
+    print("=" * 80)
+    print("사용 예시:")
+    print("=" * 80)
+    print()
+    print("SPRITE_COORDS = {")
+    for row in analyzed_rows:
+        x_coords = [frame['x'] for frame in row['frames']]
+        widths = [frame['width'] for frame in row['frames']]
+        print(f"    {row['row_idx']}: {{'y': {row['y']}, 'height': {row['height']}, 'x': {x_coords}, 'width': {widths}}},")
+    print("}")
+    print()
 
 
 def analyze_grid_pattern(image_path, cell_width, cell_height):
@@ -225,10 +188,14 @@ def analyze_grid_pattern(image_path, cell_width, cell_height):
         img = img.convert('RGBA')
         width, height = img.size
 
+        print("=" * 80)
+        print("그리드 패턴 분석 결과")
+        print("=" * 80)
         print(f"이미지 크기: {width}x{height}")
         print(f"셀 크기: {cell_width}x{cell_height}")
         print(f"그리드: {width // cell_width} x {height // cell_height}")
-        print("-" * 60)
+        print("=" * 80)
+        print()
 
         rows = height // cell_height
         cols = width // cell_width
@@ -247,7 +214,9 @@ def analyze_grid_pattern(image_path, cell_width, cell_height):
                 print(f"[{row},{col}] x={x}, y={pico_y}, w={cell_width}, h={cell_height}")
 
         print()
+        print("=" * 80)
         print("코드 예시:")
+        print("=" * 80)
         print(f"frame_width = {cell_width}")
         print(f"frame_height = {cell_height}")
         print(f"cols = {cols}")
@@ -262,9 +231,9 @@ def analyze_grid_pattern(image_path, cell_width, cell_height):
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("스프라이트 시트 분석 도구")
-    print("=" * 60)
+    print("=" * 80)
+    print("스프라이트 시트 분석 도구 (개선 버전)")
+    print("=" * 80)
     print()
 
     if len(sys.argv) < 2:
@@ -273,7 +242,7 @@ if __name__ == "__main__":
         print("  python sprite_analyzer.py <image_path> grid <width> <height>")
         print()
         print("예시:")
-        print("  python sprite_analyzer.py player.png")
+        print("  python sprite_analyzer.py EnemyFrog.png")
         print("  python sprite_analyzer.py Slash00.png grid 32 96")
         sys.exit(1)
 

@@ -32,7 +32,7 @@ def init():
     player = Player()
     game_world.add_object(player, 2)
 
-    enemy_frog = EnemyFrog()
+    enemy_frog = EnemyFrog(player)
     game_world.add_object(enemy_frog, 2)
 
 
