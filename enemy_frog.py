@@ -51,10 +51,14 @@ class Idle:
         # 프레임 업데이트
         self.frog.frame = (self.frog.frame + 6 * game_framework.frame_time) % 3
 
-        # 플레이어와 충돌하지 않으면 다시 Move로 전환
+        # 쿨타임 타이머 감소
+        if self.frog.cooldown_timer > 0:
+            self.frog.cooldown_timer -= game_framework.frame_time
+
+        # 플레이어와 충돌하지 않고 쿨타임이 끝나면 다시 Move로 전환
         if self.frog.target_player:
-            if not game_world.collide(self.frog, self.frog.target_player):
-                # 충돌 해제되면 다시 추적
+            if not game_world.collide(self.frog, self.frog.target_player) and self.frog.cooldown_timer <= 0:
+                # 충돌 해제되고 쿨타임 끝나면 다시 추적
                 self.frog.state_machine.cur_state = self.frog.MOVE
                 self.frog.MOVE.enter(('START_CHASE', None))
 
@@ -95,15 +99,21 @@ class Move:
         # 5프레임 애니메이션
         self.frog.frame = (self.frog.frame + 10 * game_framework.frame_time) % 5
 
+        # 쿨타임 타이머 감소
+        if self.frog.cooldown_timer > 0:
+            self.frog.cooldown_timer -= game_framework.frame_time
+
         if self.frog.target_player:
             # 플레이어와의 거리 계산
             dx = self.frog.target_player.x - self.frog.x
             dy = self.frog.target_player.y - self.frog.y
             distance = math.sqrt(dx**2 + dy**2)
 
-            if distance < self.frog.attack_range:
+            # 공격 범위 안이고 쿨타임이 끝났을 때만 공격
+            if distance < self.frog.attack_range and self.frog.cooldown_timer <= 0:
                 # Attack 상태로 전환
-                self.frog.state_machine.handle_state_event(('ATTACK_RANGE_IN', 0))
+                self.frog.state_machine.cur_state = self.frog.ATTACK
+                self.frog.ATTACK.enter(('ATTACK', None))
             elif distance > 0:
                 # 플레이어 방향으로 이동
                 self.frog.dir_x = dx / distance
@@ -185,7 +195,8 @@ class Attack:
 
         # 플레이어와 충돌 검사
         if self.frog.target_player and game_world.collide(self.frog, self.frog.target_player):
-            # 충돌하면 즉시 Idle 상태로 전환
+            # 충돌하면 쿨타임 시작하고 Idle 상태로 전환
+            self.frog.cooldown_timer = self.frog.attack_cooldown
             self.frog.state_machine.cur_state = self.frog.IDLE
             self.frog.IDLE.enter(('COLLISION', None))
             return
@@ -201,7 +212,8 @@ class Attack:
             self.frog.x = max(0, min(1024, self.frog.x))
             self.frog.y = max(0, min(1024, self.frog.y))
         else:
-            # 공격 종료, Move 상태로 복귀
+            # 공격 종료, 쿨타임 시작하고 Move 상태로 복귀
+            self.frog.cooldown_timer = self.frog.attack_cooldown
             self.frog.state_machine.cur_state = self.frog.MOVE
             self.frog.MOVE.enter(('TIME_OUT', None))
 
@@ -230,8 +242,10 @@ class EnemyFrog:
         self.idle_timer = 0
         self.image = load_image('EnemyFrog.png')
         self.target_player = player
-        self.attack_range = 80
-        self.chase_speed = 100  # 픽셀/초
+        self.attack_range = 100  # 공격 범위
+        self.chase_speed = 60  # 픽셀/초 (플레이어보다 느림)
+        self.attack_cooldown = 2.0  # 공격 후 2초 쿨타임
+        self.cooldown_timer = 0  # 쿨타임 타이머
 
         # 상태 생성
         self.IDLE = Idle(self)
