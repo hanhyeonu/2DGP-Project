@@ -1,5 +1,6 @@
 from pico2d import load_image, draw_rectangle
 import game_framework
+import game_world
 from state_machine import StateMachine
 import math
 import random
@@ -47,13 +48,15 @@ class Idle:
         pass
 
     def do(self):
-        # 3프레임 애니메이션
+        # 프레임 업데이트
         self.frog.frame = (self.frog.frame + 6 * game_framework.frame_time) % 3
 
-        # 타이머 업데이트
-        self.frog.idle_timer -= game_framework.frame_time
-        if self.frog.idle_timer <= 0:
-            self.frog.state_machine.handle_state_event(('TIME_OUT', 0))
+        # 플레이어와 충돌하지 않으면 다시 Move로 전환
+        if self.frog.target_player:
+            if not game_world.collide(self.frog, self.frog.target_player):
+                # 충돌 해제되면 다시 추적
+                self.frog.state_machine.cur_state = self.frog.MOVE
+                self.frog.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
         # face_dir에 따른 스프라이트 선택 및 flip 처리
@@ -148,18 +151,59 @@ class Attack:
         self.frog = frog
         self.attack_duration = 0.5
         self.attack_timer = 0
+        self.dash_speed = 300  # 돌진 속도 (픽셀/초)
+        self.target_x = 0  # 목표 x 좌표
+        self.target_y = 0  # 목표 y 좌표
+        self.dash_dir_x = 0  # 돌진 방향 x
+        self.dash_dir_y = 0  # 돌진 방향 y
 
     def enter(self, e):
         self.attack_timer = 0
+
+        # 공격 시작 시 플레이어 위치를 목표로 설정
+        if self.frog.target_player:
+            self.target_x = self.frog.target_player.x
+            self.target_y = self.frog.target_player.y
+
+            # 돌진 방향 계산
+            dx = self.target_x - self.frog.x
+            dy = self.target_y - self.frog.y
+            distance = math.sqrt(dx**2 + dy**2)
+
+            if distance > 0:
+                self.dash_dir_x = dx / distance
+                self.dash_dir_y = dy / distance
+            else:
+                self.dash_dir_x = 0
+                self.dash_dir_y = 0
 
     def exit(self, e):
         pass
 
     def do(self):
         self.attack_timer += game_framework.frame_time
-        if self.attack_timer >= self.attack_duration:
-            # Move 상태로 복귀
-            self.frog.state_machine.handle_state_event(('ATTACK_FINISHED', 0))
+
+        # 플레이어와 충돌 검사
+        if self.frog.target_player and game_world.collide(self.frog, self.frog.target_player):
+            # 충돌하면 즉시 Idle 상태로 전환
+            self.frog.state_machine.cur_state = self.frog.IDLE
+            self.frog.IDLE.enter(('COLLISION', None))
+            return
+
+        # 공격 지속 시간 동안 목표 지점으로 돌진
+        if self.attack_timer < self.attack_duration:
+            # 돌진 이동
+            dash_distance = self.dash_speed * game_framework.frame_time
+            self.frog.x += self.dash_dir_x * dash_distance
+            self.frog.y += self.dash_dir_y * dash_distance
+
+            # 화면 경계 체크
+            self.frog.x = max(0, min(1024, self.frog.x))
+            self.frog.y = max(0, min(1024, self.frog.y))
+        else:
+            # 공격 종료, Move 상태로 복귀
+            self.frog.state_machine.cur_state = self.frog.MOVE
+            self.frog.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
         # face_dir에 따른 스프라이트 선택 및 flip 처리

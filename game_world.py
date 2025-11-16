@@ -31,3 +31,18 @@ def remove_object(o):
 def clear():
     for layer in world:
         layer.clear()
+
+
+def collide(a, b):
+    """두 객체의 바운딩 박스가 겹치는지 검사"""
+    left_a, bottom_a, right_a, top_a = a.get_bb()
+    left_b, bottom_b, right_b, top_b = b.get_bb()
+
+    # 겹치지 않는 4가지 경우
+    if left_a > right_b: return False
+    if right_a < left_b: return False
+    if top_a < bottom_b: return False
+    if bottom_a > top_b: return False
+
+    # 위 4가지가 모두 아니면 충돌
+    return True
