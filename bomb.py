@@ -50,8 +50,12 @@ class Bomb:
 
         self.y = ground_y + parabola_y
 
-    def draw(self):
-        self.image.draw(self.x, self.y, 30, 30)
+    def draw(self, camera=None):
+        if camera:
+            draw_x, draw_y = camera.apply(self.x, self.y)
+            self.image.draw(draw_x, draw_y, 30, 30)
+        else:
+            self.image.draw(self.x, self.y, 30, 30)
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15

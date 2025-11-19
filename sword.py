@@ -62,9 +62,17 @@ class Sword:
             self.frame_time = 0
             self.slash_frame = (self.slash_frame + 1) % 8
 
-    def draw(self):
-        sword_x = self.player_x + self.sword_distance * math.cos(self.current_angle)
-        sword_y = self.player_y + self.sword_distance * math.sin(self.current_angle)
+    def draw(self, camera=None):
+        # 카메라가 있으면 플레이어의 draw_x, draw_y 사용
+        if camera and self.player and hasattr(self.player, 'draw_x'):
+            player_x = self.player.draw_x
+            player_y = self.player.draw_y
+        else:
+            player_x = self.player_x
+            player_y = self.player_y
+
+        sword_x = player_x + self.sword_distance * math.cos(self.current_angle)
+        sword_y = player_y + self.sword_distance * math.sin(self.current_angle)
 
         self.sword_image.composite_draw(
             self.current_angle - math.pi / 2, '',
@@ -73,8 +81,8 @@ class Sword:
         )
 
         slash_distance = self.sword_distance + 35
-        slash_x = self.player_x + slash_distance * math.cos(self.current_angle)
-        slash_y = self.player_y + slash_distance * math.sin(self.current_angle)
+        slash_x = player_x + slash_distance * math.cos(self.current_angle)
+        slash_y = player_y + slash_distance * math.sin(self.current_angle)
 
         frame_x = self.slash_frame * 32
         self.slash_image.clip_composite_draw(

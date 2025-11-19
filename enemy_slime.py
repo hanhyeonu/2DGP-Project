@@ -44,7 +44,7 @@ class Idle:
         self.slime.image.clip_composite_draw(
             frame * 50, 200, 50, 50,
             0, '',
-            self.slime.x, self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
@@ -112,7 +112,7 @@ class Move:
         self.slime.image.clip_composite_draw(
             frame * 50, 150, 50, 50,
             0, '',
-            self.slime.x, self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
@@ -196,7 +196,7 @@ class Attack:
         self.slime.image.clip_composite_draw(
             frame * 50, y, 50, 50,
             0, flip,
-            self.slime.x, self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
@@ -225,9 +225,24 @@ class EnemySlime:
     def update(self):
         self.state_machine.update()
 
-    def draw(self):
+    def draw(self, camera=None):
+        if camera:
+            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
+        else:
+            self.draw_x, self.draw_y = self.x, self.y
+
         self.state_machine.draw()
-        draw_rectangle(*self.get_bb())
+
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20

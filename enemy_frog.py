@@ -63,6 +63,9 @@ class Idle:
                 self.frog.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
+        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -74,7 +77,7 @@ class Idle:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                self.frog.x, self.frog.y, 40, 40
+                draw_x, draw_y, 40, 40
             )
 
 
@@ -134,6 +137,9 @@ class Move:
                     self.frog.face_dir = 4 if dy > 0 else 0
 
     def draw(self):
+        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
+        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -145,7 +151,7 @@ class Move:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                self.frog.x, self.frog.y, 40, 40
+                draw_x, draw_y, 40, 40
             )
 
 
@@ -218,6 +224,9 @@ class Attack:
             self.frog.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
+        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
+        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -228,7 +237,7 @@ class Attack:
             self.frog.image.clip_composite_draw(
                 coords['x'], coords['y'], 40, 40,
                 0, flip,
-                self.frog.x, self.frog.y, 40, 40
+                draw_x, draw_y, 40, 40
             )
 
 
@@ -265,9 +274,24 @@ class EnemyFrog:
     def update(self):
         self.state_machine.update()
 
-    def draw(self):
+    def draw(self, camera=None):
+        if camera:
+            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
+        else:
+            self.draw_x, self.draw_y = self.x, self.y
+
         self.state_machine.draw()
-        draw_rectangle(*self.get_bb())
+
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15

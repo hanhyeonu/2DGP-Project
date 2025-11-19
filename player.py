@@ -89,30 +89,33 @@ class Idle:
         self.player.frame = (self.player.frame + 2 * ACTION_PER_TIME * game_framework.frame_time) % 2
 
     def draw(self):
+        draw_x = self.player.draw_x if hasattr(self.player, 'draw_x') else self.player.x
+        draw_y = self.player.draw_y if hasattr(self.player, 'draw_y') else self.player.y
+
         if self.player.face_dir == 1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, '',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == 2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, '',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == 3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, '',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == -1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, 'h',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == -2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, 'h',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == -3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, 'h',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == 0:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 303, 28, 32, 0, '',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
         elif self.player.face_dir == 4:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 368, 28, 32, 0, '',
-                                                  self.player.x, self.player.y, 28, 32)
+                                                  draw_x, draw_y, 28, 32)
 
 
 class Run:
@@ -211,6 +214,9 @@ class Run:
         self.update_face_dir()
 
     def draw(self):
+        draw_x = self.player.draw_x if hasattr(self.player, 'draw_x') else self.player.x
+        draw_y = self.player.draw_y if hasattr(self.player, 'draw_y') else self.player.y
+
         direction = abs(self.player.face_dir)
         flip = 'h' if self.player.face_dir < 0 else ''
 
@@ -228,7 +234,7 @@ class Run:
                     x, y,
                     width, height,
                     0, flip,
-                    self.player.x, self.player.y,
+                    draw_x, draw_y,
                     width, height
                 )
 
@@ -323,7 +329,12 @@ class Player:
 
         self.state_machine.handle_state_event(('INPUT', event))
 
-    def draw(self):
+    def draw(self, camera=None):
+        if camera:
+            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
+        else:
+            self.draw_x, self.draw_y = self.x, self.y
+
         self.state_machine.draw()
 
         if self.show_bow:
@@ -357,8 +368,8 @@ class Player:
                 bow_x_offset, bow_y_offset = 0, -20
 
             self.bow_image.composite_draw(bow_angle, '',
-                                          self.x + bow_x_offset,
-                                          self.y + bow_y_offset,
+                                          self.draw_x + bow_x_offset,
+                                          self.draw_y + bow_y_offset,
                                           30, 30)
 
         if self.show_inventory:
@@ -367,7 +378,16 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        draw_rectangle(*self.get_bb())
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20

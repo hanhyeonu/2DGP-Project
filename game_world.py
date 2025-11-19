@@ -14,10 +14,13 @@ def update():
             o.update()
 
 
-def render():
+def render(camera=None):
     for layer in world:
         for o in layer:
-            o.draw()
+            if camera:
+                o.draw(camera)
+            else:
+                o.draw()
 
 
 def remove_object(o):

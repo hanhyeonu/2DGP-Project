@@ -71,5 +71,9 @@ class Arrow:
         self.x += self.dir_x * ARROW_SPEED_PPS * game_framework.frame_time
         self.y += self.dir_y * ARROW_SPEED_PPS * game_framework.frame_time
 
-    def draw(self):
-        self.image.composite_draw(self.angle, '', self.x, self.y, 20, 20)
+    def draw(self, camera=None):
+        if camera:
+            draw_x, draw_y = camera.apply(self.x, self.y)
+            self.image.composite_draw(self.angle, '', draw_x, draw_y, 20, 20)
+        else:
+            self.image.composite_draw(self.angle, '', self.x, self.y, 20, 20)

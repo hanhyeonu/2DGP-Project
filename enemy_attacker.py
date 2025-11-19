@@ -57,7 +57,7 @@ class Idle:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.x, self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
@@ -128,7 +128,7 @@ class Move:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.x, self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
@@ -194,7 +194,7 @@ class Attack:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.x, self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
@@ -223,9 +223,24 @@ class EnemyAttacker:
     def update(self):
         self.state_machine.update()
 
-    def draw(self):
+    def draw(self, camera=None):
+        if camera:
+            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
+        else:
+            self.draw_x, self.draw_y = self.x, self.y
+
         self.state_machine.draw()
-        draw_rectangle(*self.get_bb())
+
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22

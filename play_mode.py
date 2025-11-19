@@ -10,9 +10,11 @@ from enemy_frog import EnemyFrog
 from enemy_slime import EnemySlime
 from enemy_attacker import EnemyAttacker
 from enemy_bommer import EnemyBommer
+from camera import Camera
 
 player = None
 background = None
+camera = None
 enemy_frog = None
 enemy_slime = None
 enemy_attacker = None
@@ -65,13 +67,16 @@ def handle_events():
 
 
 def init():
-    global player, background, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
+    global player, background, camera, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
 
     background = Background()
     game_world.add_object(background, 0)
 
     player = Player()
     game_world.add_object(player, 2)
+
+    # 카메라 생성 (플레이어를 따라감)
+    camera = Camera(player)
 
     # 몬스터는 키 입력으로 생성하므로 None으로 초기화
     enemy_frog = None
@@ -82,11 +87,12 @@ def init():
 
 def update():
     game_world.update()
+    camera.update()
 
 
 def draw():
     clear_canvas()
-    game_world.render()
+    game_world.render(camera)
     update_canvas()
 
 
