@@ -8,12 +8,14 @@ from background import Background
 from enemy_frog import EnemyFrog
 from enemy_slime import EnemySlime
 from enemy_attacker import EnemyAttacker
+from enemy_bommer import EnemyBommer
 
 player = None
 background = None
 enemy_frog = None
 enemy_slime = None
 enemy_attacker = None
+enemy_bommer = None
 
 
 def handle_events():
@@ -28,7 +30,7 @@ def handle_events():
 
 
 def init():
-    global player, background, enemy_frog, enemy_slime, enemy_attacker
+    global player, background, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
 
     background = Background()
     game_world.add_object(background, 0)
@@ -44,6 +46,9 @@ def init():
 
     enemy_attacker = EnemyAttacker(player)
     game_world.add_object(enemy_attacker, 2)
+
+    enemy_bommer = EnemyBommer(player)
+    game_world.add_object(enemy_bommer, 2)
 
 
 def update():
