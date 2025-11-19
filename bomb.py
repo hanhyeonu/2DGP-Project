@@ -51,10 +51,10 @@ class Bomb:
         self.y = ground_y + parabola_y
 
     def draw(self):
-        self.image.draw(self.x, self.y, 55, 55)
+        self.image.draw(self.x, self.y, 30, 30)
 
     def get_bb(self):
-        return self.x - 27, self.y - 27, self.x + 27, self.y + 27
+        return self.x - 15, self.y - 15, self.x + 15, self.y + 15
 
     def handle_collision(self, group, other):
         pass
