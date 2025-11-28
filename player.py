@@ -94,8 +94,8 @@ class Idle:
         self.player = player
 
     def enter(self, e):
-        if event_stop(e):
-            pass  # 이전 방향 유지
+        self.player.dir_x = 0
+        self.player.dir_y = 0
 
     def exit(self, e):
         pass
@@ -171,8 +171,25 @@ class Run:
         self.player = player
 
     def enter(self, e):
-        if event_run(e):
-            pass
+        if right_down(e):
+            self.player.dir_x += 1
+        elif left_down(e):
+            self.player.dir_x -= 1
+        elif right_up(e):
+            self.player.dir_x -= 1
+        elif left_up(e):
+            self.player.dir_x += 1
+
+        if up_down(e):
+            self.player.dir_y += 1
+        elif down_down(e):
+            self.player.dir_y -= 1
+        elif up_up(e):
+            self.player.dir_y -= 1
+        elif down_up(e):
+            self.player.dir_y += 1
+
+        self.update_face_dir()
 
     def exit(self, e):
         pass
@@ -377,7 +394,16 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        # draw_rectangle(*self.get_bb())
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20
