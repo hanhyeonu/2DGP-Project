@@ -3,6 +3,7 @@ import game_world
 import game_framework
 import math
 
+# Arrow Speed
 PIXEL_PER_METER = (10.0 / 0.3)
 ARROW_SPEED_KMPH = 60.0
 ARROW_SPEED_MPM = (ARROW_SPEED_KMPH * 1000.0 / 60.0)
@@ -77,3 +78,10 @@ class Arrow:
             self.image.composite_draw(self.angle, '', draw_x, draw_y, 20, 20)
         else:
             self.image.composite_draw(self.angle, '', self.x, self.y, 20, 20)
+
+    def get_bb(self):
+        return self.x - 10, self.y - 10, self.x + 10, self.y + 10
+
+    def handle_collision(self, group, other):
+        # 화살의 충돌 처리
+        pass
