@@ -4,7 +4,6 @@ import game_world
 from state_machine import StateMachine
 import math
 
-
 # Enemy Speed
 PIXEL_PER_METER = (10.0 / 0.3)
 RUN_SPEED_KMPH = 10.0
@@ -101,7 +100,7 @@ class Move:
         if self.frog.target_player:
             dx = self.frog.target_player.x - self.frog.x
             dy = self.frog.target_player.y - self.frog.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             if distance < self.frog.attack_range and self.frog.cooldown_timer <= 0:
                 self.frog.state_machine.cur_state = self.frog.ATTACK
@@ -166,7 +165,7 @@ class Attack:
 
             dx = self.target_x - self.frog.x
             dy = self.target_y - self.frog.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             if distance > 0:
                 self.dash_dir_x = dx / distance
@@ -254,7 +253,17 @@ class EnemyFrog:
             self.draw_x, self.draw_y = self.x, self.y
 
         self.state_machine.draw()
-        # draw_rectangle(*self.get_bb())
+
+        if camera:
+            bb = self.get_bb()
+            offset_x = self.draw_x - self.x
+            offset_y = self.draw_y - self.y
+            draw_rectangle(
+                bb[0] + offset_x, bb[1] + offset_y,
+                bb[2] + offset_x, bb[3] + offset_y
+            )
+        else:
+            draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15
