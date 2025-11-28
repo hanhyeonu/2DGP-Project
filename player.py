@@ -1,5 +1,6 @@
-from pico2d import load_image, get_time, draw_rectangle
-from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP, SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2, SDLK_m
+from pico2d import load_image, draw_rectangle
+from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP
+from sdl2 import SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2, SDLK_m
 
 import game_world
 import game_framework
@@ -49,25 +50,39 @@ def z_down(e):
 def x_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_x
 
+
 def i_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_i
+
 
 def key_1_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_1
 
+
 def key_2_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_2
+
 
 def m_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_m
 
 
+def event_stop(e):
+    return e[0] == 'STOP'
+
+
+def event_run(e):
+    return e[0] == 'RUN'
+
+
+# Player Speed
 PIXEL_PER_METER = (10.0 / 0.3)
 RUN_SPEED_KMPH = 20.0
 RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
 RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
 RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 
+# Player Action Speed
 TIME_PER_ACTION = 0.5
 ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
 FRAMES_PER_ACTION = 10
@@ -79,8 +94,8 @@ class Idle:
         self.player = player
 
     def enter(self, e):
-        self.player.dir_x = 0
-        self.player.dir_y = 0
+        if event_stop(e):
+            pass  # 이전 방향 유지
 
     def exit(self, e):
         pass
@@ -156,25 +171,8 @@ class Run:
         self.player = player
 
     def enter(self, e):
-        if right_down(e):
-            self.player.dir_x += 1
-        elif left_down(e):
-            self.player.dir_x -= 1
-        elif right_up(e):
-            self.player.dir_x -= 1
-        elif left_up(e):
-            self.player.dir_x += 1
-
-        if up_down(e):
-            self.player.dir_y += 1
-        elif down_down(e):
-            self.player.dir_y -= 1
-        elif up_up(e):
-            self.player.dir_y -= 1
-        elif down_up(e):
-            self.player.dir_y += 1
-
-        self.update_face_dir()
+        if event_run(e):
+            pass
 
     def exit(self, e):
         pass
@@ -249,10 +247,11 @@ class Player:
         self.image = load_image('player.png')
         self.bow_image = load_image('item_bow_C.png')
         self.inventory_image = load_image('inventory.png')
+        self.worldmap_image = load_image('worldmap.png')
+
         self.show_bow = False
         self.bow_timer = 0
         self.show_inventory = False
-        self.worldmap_image = load_image('worldmap.png')
         self.show_worldmap = False
 
         self.current_weapon = 'bow'
@@ -378,16 +377,7 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20
@@ -397,14 +387,8 @@ class Player:
         self.bow_timer = 0.1
 
         offset_map = {
-            1: (20, 0),
-            2: (15, 15),
-            3: (15, -15),
-            4: (0, 20),
-            0: (0, -20),
-            -1: (-20, 0),
-            -2: (-15, 15),
-            -3: (-15, -15)
+            1: (20, 0), 2: (15, 15), 3: (15, -15), 4: (0, 20),
+            0: (0, -20), -1: (-20, 0), -2: (-15, 15), -3: (-15, -15)
         }
 
         offset_x, offset_y = offset_map.get(self.face_dir, (20, 0))
@@ -422,3 +406,7 @@ class Player:
         self.is_attacking = True
         sword = Sword(self.x, self.y, self.face_dir, self)
         game_world.add_object(sword, 1)
+
+    def handle_collision(self, group, other):
+        # 플레이어의 충돌 처리
+        pass
