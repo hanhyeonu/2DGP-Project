@@ -3,8 +3,9 @@ import game_framework
 import game_world
 from state_machine import StateMachine
 import math
-import random
 
+
+# Enemy Speed
 PIXEL_PER_METER = (10.0 / 0.3)
 RUN_SPEED_KMPH = 10.0
 RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
@@ -28,11 +29,10 @@ def attack_finished(e):
 
 
 class Idle:
-    # 40x40 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 240, 'frames': 3},   # 오른쪽/왼쪽
-        0: {'y': 200, 'frames': 3},   # 아래
-        4: {'y': 160, 'frames': 3}    # 위
+        1: {'y': 240, 'frames': 3},
+        0: {'y': 200, 'frames': 3},
+        4: {'y': 160, 'frames': 3}
     }
 
     def __init__(self, frog):
@@ -41,24 +41,20 @@ class Idle:
     def enter(self, e):
         self.frog.dir_x = 0
         self.frog.dir_y = 0
-        self.frog.idle_timer = 1.0  # 1초 후 Move로 전환
+        self.frog.idle_timer = 1.0
         self.frog.frame = 0
 
     def exit(self, e):
         pass
 
     def do(self):
-        # 프레임 업데이트
         self.frog.frame = (self.frog.frame + 6 * game_framework.frame_time) % 3
 
-        # 쿨타임 타이머 감소
         if self.frog.cooldown_timer > 0:
             self.frog.cooldown_timer -= game_framework.frame_time
 
-        # 플레이어와 충돌하지 않고 쿨타임이 끝나면 다시 Move로 전환
         if self.frog.target_player:
             if not game_world.collide(self.frog, self.frog.target_player) and self.frog.cooldown_timer <= 0:
-                # 충돌 해제되고 쿨타임 끝나면 다시 추적
                 self.frog.state_machine.cur_state = self.frog.MOVE
                 self.frog.MOVE.enter(('START_CHASE', None))
 
@@ -66,7 +62,6 @@ class Idle:
         draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
         draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
 
-        # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
         if dir_key in self.SPRITE_COORDS:
@@ -82,11 +77,10 @@ class Idle:
 
 
 class Move:
-    # 40x40 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 120, 'frames': 5},   # 오른쪽/왼쪽
-        0: {'y': 80, 'frames': 5},    # 아래
-        4: {'y': 40, 'frames': 5}     # 위
+        1: {'y': 120, 'frames': 5},
+        0: {'y': 80, 'frames': 5},
+        4: {'y': 40, 'frames': 5}
     }
 
     def __init__(self, frog):
@@ -99,26 +93,20 @@ class Move:
         pass
 
     def do(self):
-        # 5프레임 애니메이션
         self.frog.frame = (self.frog.frame + 10 * game_framework.frame_time) % 5
 
-        # 쿨타임 타이머 감소
         if self.frog.cooldown_timer > 0:
             self.frog.cooldown_timer -= game_framework.frame_time
 
         if self.frog.target_player:
-            # 플레이어와의 거리 계산
             dx = self.frog.target_player.x - self.frog.x
             dy = self.frog.target_player.y - self.frog.y
             distance = math.sqrt(dx**2 + dy**2)
 
-            # 공격 범위 안이고 쿨타임이 끝났을 때만 공격
             if distance < self.frog.attack_range and self.frog.cooldown_timer <= 0:
-                # Attack 상태로 전환
                 self.frog.state_machine.cur_state = self.frog.ATTACK
                 self.frog.ATTACK.enter(('ATTACK', None))
             elif distance > 0:
-                # 플레이어 방향으로 이동
                 self.frog.dir_x = dx / distance
                 self.frog.dir_y = dy / distance
 
@@ -126,11 +114,9 @@ class Move:
                 self.frog.x += self.frog.dir_x * speed
                 self.frog.y += self.frog.dir_y * speed
 
-                # 화면 경계 체크
                 self.frog.x = max(0, min(1024, self.frog.x))
                 self.frog.y = max(0, min(1024, self.frog.y))
 
-                # face_dir 업데이트 (주 방향만: 1, -1, 0, 4)
                 if abs(dx) > abs(dy):
                     self.frog.face_dir = 1 if dx > 0 else -1
                 else:
@@ -140,7 +126,6 @@ class Move:
         draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
         draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
 
-        # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
         if dir_key in self.SPRITE_COORDS:
@@ -156,32 +141,29 @@ class Move:
 
 
 class Attack:
-    # 40x40 그리드 기반 스프라이트 좌표 (행 7, y=0)
     SPRITE_COORDS = {
-        1: {'x': 0, 'y': 0},     # 오른쪽/왼쪽
-        0: {'x': 40, 'y': 0},    # 아래
-        4: {'x': 80, 'y': 0}     # 위
+        1: {'x': 0, 'y': 0},
+        0: {'x': 40, 'y': 0},
+        4: {'x': 80, 'y': 0}
     }
 
     def __init__(self, frog):
         self.frog = frog
         self.attack_duration = 0.5
         self.attack_timer = 0
-        self.dash_speed = 300  # 돌진 속도 (픽셀/초)
-        self.target_x = 0  # 목표 x 좌표
-        self.target_y = 0  # 목표 y 좌표
-        self.dash_dir_x = 0  # 돌진 방향 x
-        self.dash_dir_y = 0  # 돌진 방향 y
+        self.dash_speed = 300
+        self.target_x = 0
+        self.target_y = 0
+        self.dash_dir_x = 0
+        self.dash_dir_y = 0
 
     def enter(self, e):
         self.attack_timer = 0
 
-        # 공격 시작 시 플레이어 위치를 목표로 설정
         if self.frog.target_player:
             self.target_x = self.frog.target_player.x
             self.target_y = self.frog.target_player.y
 
-            # 돌진 방향 계산
             dx = self.target_x - self.frog.x
             dy = self.target_y - self.frog.y
             distance = math.sqrt(dx**2 + dy**2)
@@ -199,26 +181,20 @@ class Attack:
     def do(self):
         self.attack_timer += game_framework.frame_time
 
-        # 플레이어와 충돌 검사
         if self.frog.target_player and game_world.collide(self.frog, self.frog.target_player):
-            # 충돌하면 쿨타임 시작하고 Idle 상태로 전환
             self.frog.cooldown_timer = self.frog.attack_cooldown
             self.frog.state_machine.cur_state = self.frog.IDLE
             self.frog.IDLE.enter(('COLLISION', None))
             return
 
-        # 공격 지속 시간 동안 목표 지점으로 돌진
         if self.attack_timer < self.attack_duration:
-            # 돌진 이동
             dash_distance = self.dash_speed * game_framework.frame_time
             self.frog.x += self.dash_dir_x * dash_distance
             self.frog.y += self.dash_dir_y * dash_distance
 
-            # 화면 경계 체크
             self.frog.x = max(0, min(1024, self.frog.x))
             self.frog.y = max(0, min(1024, self.frog.y))
         else:
-            # 공격 종료, 쿨타임 시작하고 Move 상태로 복귀
             self.frog.cooldown_timer = self.frog.attack_cooldown
             self.frog.state_machine.cur_state = self.frog.MOVE
             self.frog.MOVE.enter(('TIME_OUT', None))
@@ -227,7 +203,6 @@ class Attack:
         draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
         draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
 
-        # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
         if dir_key in self.SPRITE_COORDS:
@@ -251,17 +226,15 @@ class EnemyFrog:
         self.idle_timer = 0
         self.image = load_image('EnemyFrog.png')
         self.target_player = player
-        self.attack_range = 100  # 공격 범위
-        self.chase_speed = 60  # 픽셀/초 (플레이어보다 느림)
-        self.attack_cooldown = 2.0  # 공격 후 2초 쿨타임
-        self.cooldown_timer = 0  # 쿨타임 타이머
+        self.attack_range = 100
+        self.chase_speed = 60
+        self.attack_cooldown = 2.0
+        self.cooldown_timer = 0
 
-        # 상태 생성
         self.IDLE = Idle(self)
         self.MOVE = Move(self)
         self.ATTACK = Attack(self)
 
-        # 상태머신 설정
         self.state_machine = StateMachine(
             self.IDLE,
             {
@@ -281,17 +254,7 @@ class EnemyFrog:
             self.draw_x, self.draw_y = self.x, self.y
 
         self.state_machine.draw()
-
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # draw_rectangle(*self.get_bb())
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15
