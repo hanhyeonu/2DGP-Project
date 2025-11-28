@@ -1,31 +1,21 @@
 from pico2d import *
-from pico2d import SDLK_F1, SDLK_F2, SDLK_F3, SDLK_F4
-
 import game_framework
 import game_world
 
 from player import Player
 from background import Background
+from camera import Camera
 from enemy_frog import EnemyFrog
 from enemy_slime import EnemySlime
 from enemy_attacker import EnemyAttacker
 from enemy_bommer import EnemyBommer
-from camera import Camera
-
-player = None
-background = None
-camera = None
-enemy_frog = None
-enemy_slime = None
-enemy_attacker = None
-enemy_bommer = None
 
 
 def handle_events():
-    global enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
+    global player, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
 
-    event_list = get_events()
-    for event in event_list:
+    events = get_events()
+    for event in events:
         if event.type == SDL_QUIT:
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
@@ -35,6 +25,7 @@ def handle_events():
             if enemy_frog is None:
                 enemy_frog = EnemyFrog(player)
                 game_world.add_object(enemy_frog, 2)
+                game_world.add_collision_pair('player:enemy', player, enemy_frog)
             else:
                 game_world.remove_object(enemy_frog)
                 enemy_frog = None
@@ -43,6 +34,7 @@ def handle_events():
             if enemy_slime is None:
                 enemy_slime = EnemySlime(player)
                 game_world.add_object(enemy_slime, 2)
+                game_world.add_collision_pair('player:enemy', player, enemy_slime)
             else:
                 game_world.remove_object(enemy_slime)
                 enemy_slime = None
@@ -51,6 +43,7 @@ def handle_events():
             if enemy_attacker is None:
                 enemy_attacker = EnemyAttacker(player)
                 game_world.add_object(enemy_attacker, 2)
+                game_world.add_collision_pair('player:enemy', player, enemy_attacker)
             else:
                 game_world.remove_object(enemy_attacker)
                 enemy_attacker = None
@@ -59,6 +52,7 @@ def handle_events():
             if enemy_bommer is None:
                 enemy_bommer = EnemyBommer(player)
                 game_world.add_object(enemy_bommer, 2)
+                game_world.add_collision_pair('player:enemy', player, enemy_bommer)
             else:
                 game_world.remove_object(enemy_bommer)
                 enemy_bommer = None
@@ -78,26 +72,28 @@ def init():
     # 카메라 생성 (플레이어를 따라감)
     camera = Camera(player)
 
-    # 몬스터는 키 입력으로 생성하므로 None으로 초기화
+    # 몬스터는 None으로 초기화
     enemy_frog = None
     enemy_slime = None
     enemy_attacker = None
     enemy_bommer = None
 
 
+def finish():
+    game_world.clear()
+    pass
+
+
 def update():
     game_world.update()
     camera.update()
+    game_world.handle_collisions()
 
 
 def draw():
     clear_canvas()
     game_world.render(camera)
     update_canvas()
-
-
-def finish():
-    game_world.clear()
 
 
 def pause():
