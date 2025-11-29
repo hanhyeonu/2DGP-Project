@@ -5,6 +5,7 @@ import game_world
 from player import Player
 from background import Background
 from camera import Camera
+from tile_map import TileMap
 from enemy_frog import EnemyFrog
 from enemy_slime import EnemySlime
 from enemy_attacker import EnemyAttacker
@@ -12,7 +13,7 @@ from enemy_bommer import EnemyBommer
 
 
 def handle_events():
-    global player, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
+    global player, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer, tile_map
 
     events = get_events()
     for event in events:
@@ -20,6 +21,16 @@ def handle_events():
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             game_framework.quit()
+        # 맵 전환 키 (테스트용)
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_7:
+            tile_map.set_map(1)
+            print("맵1로 전환")
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_8:
+            tile_map.set_map(2)
+            print("맵2로 전환")
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_9:
+            tile_map.set_map(3)
+            print("맵3로 전환")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_F1:
             # F1: 개구리 토글
             if enemy_frog is None:
@@ -61,8 +72,13 @@ def handle_events():
 
 
 def init():
-    global player, background, camera, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
+    global player, background, camera, tile_map, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
 
+    # 타일 맵 생성 (가장 먼저, depth 0에 배치)
+    tile_map = TileMap()
+    game_world.add_object(tile_map, 0)
+
+    # 기존 배경은 유지 (depth 0)
     background = Background()
     game_world.add_object(background, 0)
 
