@@ -257,8 +257,8 @@ class Run:
 
 class Player:
     def __init__(self):
-        # 월드 좌표 (화면 중앙에서 시작)
-        self.x, self.y = get_canvas_width() // 2, get_canvas_height() // 2
+        # 월드 좌표 (월드 중앙에서 시작)
+        self.x, self.y = 2048 // 2, 2048 // 2  # 월드 중앙 (1024, 1024)
 
         # 화면 표시 좌표 (항상 화면 중앙)
         self.screen_x = get_canvas_width() // 2
@@ -301,9 +301,12 @@ class Player:
     def update(self):
         self.state_machine.update()
 
-        # 월드 경계 체크 (2048x2048)
-        self.x = clamp(50, self.x, 2048 - 50)
-        self.y = clamp(50, self.y, 2048 - 50)
+        # 플레이어는 맵 전체를 이동할 수 있어야 함 (0 ~ 2048)
+        # 단, 캐릭터가 맵 밖으로 나가지는 않도록 제한
+        self.x = clamp(0, self.x, 2048)
+        self.y = clamp(0, self.y, 2048)
+
+        # 카메라는 background.py에서 알아서 맵 밖을 보지 않도록 처리
 
         if self.show_bow:
             self.bow_timer -= game_framework.frame_time
@@ -357,9 +360,17 @@ class Player:
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self, camera=None):
-        # 화면 중앙에 고정 (스크롤링 방식)
-        self.draw_x = self.screen_x
-        self.draw_y = self.screen_y
+        # 스크롤링: 플레이어 위치 기준으로 화면 좌표 계산
+        cw = get_canvas_width()
+        ch = get_canvas_height()
+
+        # window 계산 (카메라가 볼 수 있는 영역)
+        window_left = clamp(0, int(self.x) - cw // 2, 2048 - cw)
+        window_bottom = clamp(0, int(self.y) - ch // 2, 2048 - ch)
+
+        # 플레이어의 화면 좌표 계산
+        self.draw_x = self.x - window_left
+        self.draw_y = self.y - window_bottom
 
         self.state_machine.draw()
 
@@ -404,7 +415,7 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        # 바운딩 박스 (화면 중앙 기준)
+        # 바운딩 박스 (화면 좌표 기준)
         bb_half_size = 20
         draw_rectangle(
             self.draw_x - bb_half_size, self.draw_y - bb_half_size,

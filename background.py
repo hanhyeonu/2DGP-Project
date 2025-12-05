@@ -139,12 +139,14 @@ class Background:
     def draw_original_background(self):
         """기존 배경 그리기 (kyoten + grass) - 스크롤링 적용"""
         # 플레이어 위치 기준으로 window 계산
-        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw - 1)
-        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch - 1)
+        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw)
+        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch)
 
         # 잔디 타일 그리기
         tiles_x = self.world_width // self.tile_size + 1
         tiles_y = self.grass_height // self.tile_size + 1
+
+        half_tile = self.tile_size // 2
 
         for y in range(tiles_y):
             for x in range(tiles_x):
@@ -154,9 +156,9 @@ class Background:
                 # window 영역 안에 있는지 확인
                 if (world_x >= window_left and world_x < window_left + self.cw and
                         world_y >= window_bottom and world_y < window_bottom + self.ch):
-                    # 화면 좌표로 변환
-                    screen_x = world_x - window_left
-                    screen_y = world_y - window_bottom
+                    # 화면 좌표로 변환 (중심점으로 보정)
+                    screen_x = world_x - window_left + half_tile
+                    screen_y = world_y - window_bottom + half_tile
                     self.grass_tile.draw(screen_x, screen_y, self.tile_size, self.tile_size)
 
         # 교토 이미지 그리기 (중앙에 고정)
@@ -167,8 +169,8 @@ class Background:
     def draw_tilemap(self):
         """타일맵 그리기 - 스크롤링 적용"""
         # 플레이어 위치 기준으로 window 계산
-        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw - 1)
-        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch - 1)
+        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw)
+        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch)
 
         # 보이는 타일만 그리기
         start_tile_x = window_left // self.SCALED_TILE_SIZE
@@ -176,17 +178,20 @@ class Background:
         start_tile_y = window_bottom // self.SCALED_TILE_SIZE
         end_tile_y = min((window_bottom + self.ch) // self.SCALED_TILE_SIZE + 1, self.TILES_Y)
 
+        # 타일 크기의 절반 (중심점 보정)
+        half_tile = self.SCALED_TILE_SIZE // 2
+
         for y in range(start_tile_y, end_tile_y):
             for x in range(start_tile_x, end_tile_x):
                 tile_value = self.current_map[y][x]
 
-                # 월드 좌표
+                # 월드 좌표 (타일의 왼쪽 아래 모서리)
                 world_x = x * self.SCALED_TILE_SIZE
                 world_y = y * self.SCALED_TILE_SIZE
 
-                # 화면 좌표로 변환
-                screen_x = world_x - window_left
-                screen_y = world_y - window_bottom
+                # 화면 좌표로 변환 (중심점으로 보정)
+                screen_x = world_x - window_left + half_tile
+                screen_y = world_y - window_bottom + half_tile
 
                 # 타일 그리기
                 if self.current_map_number == 1:
