@@ -1,9 +1,10 @@
-from pico2d import load_image, draw_rectangle
+from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 from sdl2 import SDL_KEYDOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_UP, SDLK_DOWN, SDL_KEYUP
 from sdl2 import SDLK_z, SDLK_x, SDLK_i, SDLK_1, SDLK_2, SDLK_m
 
 import game_world
 import game_framework
+import common
 from state_machine import StateMachine
 from arrow import Arrow
 from skill import BowSkill
@@ -256,7 +257,13 @@ class Run:
 
 class Player:
     def __init__(self):
-        self.x, self.y = 400, 400
+        # 월드 좌표 (화면 중앙에서 시작)
+        self.x, self.y = get_canvas_width() // 2, get_canvas_height() // 2
+
+        # 화면 표시 좌표 (항상 화면 중앙)
+        self.screen_x = get_canvas_width() // 2
+        self.screen_y = get_canvas_height() // 2
+
         self.frame = 0
         self.face_dir = 1
         self.dir_x = 0
@@ -293,6 +300,10 @@ class Player:
 
     def update(self):
         self.state_machine.update()
+
+        # 월드 경계 체크 (2048x2048)
+        self.x = clamp(50, self.x, 2048 - 50)
+        self.y = clamp(50, self.y, 2048 - 50)
 
         if self.show_bow:
             self.bow_timer -= game_framework.frame_time
@@ -346,10 +357,9 @@ class Player:
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self, camera=None):
-        if camera:
-            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
-        else:
-            self.draw_x, self.draw_y = self.x, self.y
+        # 화면 중앙에 고정 (스크롤링 방식)
+        self.draw_x = self.screen_x
+        self.draw_y = self.screen_y
 
         self.state_machine.draw()
 
@@ -394,16 +404,12 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # 바운딩 박스 (화면 중앙 기준)
+        bb_half_size = 20
+        draw_rectangle(
+            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        )
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20
