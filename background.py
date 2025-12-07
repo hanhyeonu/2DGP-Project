@@ -122,6 +122,39 @@ class Background:
         self.current_map_number = 1
         self.use_tilemap = True
 
+        # 벽 충돌 객체 리스트
+        self.walls = []
+
+    def create_walls(self):
+        """현재 맵의 벽 타일을 충돌 객체로 생성"""
+        from wall import Wall
+        import game_world
+
+        # 기존 벽 제거
+        for wall in self.walls:
+            game_world.remove_object(wall)
+        self.walls.clear()
+
+        # 맵3은 벽이 없으므로 생성하지 않음
+        if self.current_map_number == 3 or not self.use_tilemap:
+            return
+
+        # 타일맵을 순회하며 벽(1) 타일 생성
+        for row in range(self.TILES_Y):
+            for col in range(self.TILES_X):
+                # Y축 반전 적용
+                flipped_row = self.TILES_Y - 1 - row
+                tile_value = self.current_map[flipped_row][col]
+
+                if tile_value == 1:  # 벽 타일
+                    # 타일 중심 좌표 계산
+                    world_x = col * self.SCALED_TILE_SIZE + self.SCALED_TILE_SIZE // 2
+                    world_y = row * self.SCALED_TILE_SIZE + self.SCALED_TILE_SIZE // 2
+
+                    wall = Wall(world_x, world_y, self.SCALED_TILE_SIZE)
+                    self.walls.append(wall)
+                    game_world.add_object(wall, 0)  # 배경 레이어
+
     def set_map(self, map_number):
         """맵 전환"""
         if map_number == 1:
@@ -139,6 +172,9 @@ class Background:
         elif map_number == 4:
             self.current_map_number = 4
             self.use_tilemap = False  # 기존 배경 사용
+
+        # 맵 전환 시 벽 재생성
+        self.create_walls()
 
     def update(self):
         pass
