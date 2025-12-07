@@ -5,6 +5,7 @@ import math
 
 SLASH_SPEED = 5.0
 
+
 class Sword:
     sword_image = None
     slash_image = None
@@ -63,13 +64,20 @@ class Sword:
             self.slash_frame = (self.slash_frame + 1) % 8
 
     def draw(self, camera=None):
-        # 카메라가 있으면 플레이어의 draw_x, draw_y 사용
-        if camera and self.player and hasattr(self.player, 'draw_x'):
+        # 플레이어의 화면 좌표 사용
+        if self.player and hasattr(self.player, 'draw_x'):
             player_x = self.player.draw_x
             player_y = self.player.draw_y
         else:
-            player_x = self.player_x
-            player_y = self.player_y
+            # fallback: 월드 좌표를 화면 좌표로 변환
+            from pico2d import get_canvas_width, get_canvas_height, clamp
+            import common
+
+            window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+            window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+            player_x = self.player_x - window_left
+            player_y = self.player_y - window_bottom
 
         sword_x = player_x + self.sword_distance * math.cos(self.current_angle)
         sword_y = player_y + self.sword_distance * math.sin(self.current_angle)

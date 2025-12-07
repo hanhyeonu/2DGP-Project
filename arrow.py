@@ -73,11 +73,17 @@ class Arrow:
         self.y += self.dir_y * ARROW_SPEED_PPS * game_framework.frame_time
 
     def draw(self, camera=None):
-        if camera:
-            draw_x, draw_y = camera.apply(self.x, self.y)
-            self.image.composite_draw(self.angle, '', draw_x, draw_y, 20, 20)
-        else:
-            self.image.composite_draw(self.angle, '', self.x, self.y, 20, 20)
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        from pico2d import get_canvas_width, get_canvas_height, clamp
+        import common
+
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        draw_x = self.x - window_left
+        draw_y = self.y - window_bottom
+
+        self.image.composite_draw(self.angle, '', draw_x, draw_y, 20, 20)
 
     def get_bb(self):
         return self.x - 10, self.y - 10, self.x + 10, self.y + 10
