@@ -261,6 +261,9 @@ class Player:
         # 배열 (3, 4) → Y축 반전 → 월드 (288, 1824)
         self.x, self.y = 288, 1824
 
+        # 이전 프레임 위치 (충돌 처리용)
+        self.prev_x, self.prev_y = self.x, self.y
+
         # 화면 표시 좌표 (항상 화면 중앙)
         self.screen_x = get_canvas_width() // 2
         self.screen_y = get_canvas_height() // 2
@@ -300,6 +303,9 @@ class Player:
         )
 
     def update(self):
+        # 이동 전 위치 저장 (충돌 시 되돌리기 위함)
+        self.prev_x, self.prev_y = self.x, self.y
+
         self.state_machine.update()
 
         # 플레이어는 맵 전체를 이동할 수 있어야 함 (0 ~ 2048)
@@ -439,6 +445,10 @@ class Player:
         arrow = Arrow(self.x + offset_x, self.y + offset_y, self.face_dir)
         game_world.add_object(arrow, 1)
 
+        # 화살과 벽 충돌 페어 등록
+        for wall in common.background.walls:
+            game_world.add_collision_pair('arrow:wall', arrow, wall)
+
     def use_skill(self):
         if self.skill and not self.skill.is_active():
             self.skill.activate()
@@ -453,4 +463,7 @@ class Player:
 
     def handle_collision(self, group, other):
         # 플레이어의 충돌 처리
-        pass
+        if group == 'player:wall':
+            # 벽과 충돌 시 이전 위치로 되돌림
+            self.x = self.prev_x
+            self.y = self.prev_y
