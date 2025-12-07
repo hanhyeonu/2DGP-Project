@@ -51,11 +51,17 @@ class Bomb:
         self.y = ground_y + parabola_y
 
     def draw(self, camera=None):
-        if camera:
-            draw_x, draw_y = camera.apply(self.x, self.y)
-            self.image.draw(draw_x, draw_y, 30, 30)
-        else:
-            self.image.draw(self.x, self.y, 30, 30)
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        from pico2d import get_canvas_width, get_canvas_height, clamp
+        import common
+
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        draw_x = self.x - window_left
+        draw_y = self.y - window_bottom
+
+        self.image.draw(draw_x, draw_y, 30, 30)
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15
