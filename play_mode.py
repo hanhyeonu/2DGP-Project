@@ -23,16 +23,28 @@ def handle_events():
         # 맵 전환 키 (테스트용)
         elif event.type == SDL_KEYDOWN and event.key == SDLK_7:
             common.background.set_map(1)
-            print("맵1로 전환")
+            # 맵1: 좌상단 박스 중앙 (타일 4,3 중심 = 288, 224)
+            common.player.x = 288
+            common.player.y = 224
+            print("맵1로 전환 - 플레이어 위치: 좌상단")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_8:
             common.background.set_map(2)
-            print("맵2로 전환")
+            # 맵2: 중앙 박스 중앙 (타일 15,17 중심 = 992, 1120)
+            common.player.x = 992
+            common.player.y = 1120
+            print("맵2로 전환 - 플레이어 위치: 중앙")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_9:
             common.background.set_map(3)
-            print("맵3로 전환")
+            # 맵3: 맵 중앙 (타일 16,16 중심 = 1056, 1056)
+            common.player.x = 1056
+            common.player.y = 1056
+            print("맵3로 전환 - 플레이어 위치: 맵 중앙")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_0:
             common.background.set_map(4)
-            print("맵4(기존 배경)로 전환")
+            # 맵4: 월드 중앙
+            common.player.x = 1024
+            common.player.y = 1024
+            print("맵4(기존 배경)로 전환 - 플레이어 위치: 중앙")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_F1:
             # F1: 개구리 토글
             if enemy_frog is None:
