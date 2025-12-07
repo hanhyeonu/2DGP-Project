@@ -82,10 +82,12 @@ class Sword:
         sword_x = player_x + self.sword_distance * math.cos(self.current_angle)
         sword_y = player_y + self.sword_distance * math.sin(self.current_angle)
 
+        zoom = common.background.zoom
+
         self.sword_image.composite_draw(
             self.current_angle - math.pi / 2, '',
             sword_x, sword_y,
-            22, 70
+            int(22 * zoom), int(70 * zoom)
         )
 
         slash_distance = self.sword_distance + 35
@@ -98,5 +100,5 @@ class Sword:
             32, 96,
             self.current_angle - math.pi / 2 + math.pi / 2, '',
             slash_x, slash_y,
-            32, 96
+            int(32 * zoom), int(96 * zoom)
         )

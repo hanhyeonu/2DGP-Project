@@ -8,6 +8,11 @@ class Background:
         self.cw = get_canvas_width()
         self.ch = get_canvas_height()
 
+        # 카메라 줌 설정
+        self.zoom = 2.0  # 2배 확대
+        self.camera_width = int(self.cw / self.zoom)  # 실제 보는 월드 영역
+        self.camera_height = int(self.ch / self.zoom)
+
         # 기존 배경 이미지
         self.kyoten_image = load_image('kyoten.png')
         self.grass_tile = load_image('base_grass_cc.png')
@@ -177,10 +182,10 @@ class Background:
         pass
 
     def draw_original_background(self):
-        """기존 배경 그리기 (kyoten + grass) - 스크롤링 적용"""
-        # 플레이어 위치 기준으로 window 계산
-        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw)
-        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch)
+        """기존 배경 그리기 (kyoten + grass) - 스크롤링 적용 + 2배 줌"""
+        # 플레이어 위치 기준으로 window 계산 (줌 적용)
+        window_left = clamp(0, int(common.player.x) - self.camera_width // 2, self.world_width - self.camera_width)
+        window_bottom = clamp(0, int(common.player.y) - self.camera_height // 2, self.world_height - self.camera_height)
 
         # 잔디 타일 그리기
         tiles_x = self.world_width // self.tile_size + 1
@@ -193,30 +198,30 @@ class Background:
                 world_x = x * self.tile_size
                 world_y = y * self.tile_size
 
-                # window 영역 안에 있는지 확인
-                if (world_x >= window_left and world_x < window_left + self.cw and
-                        world_y >= window_bottom and world_y < window_bottom + self.ch):
-                    # 화면 좌표로 변환 (중심점으로 보정)
-                    screen_x = world_x - window_left + half_tile
-                    screen_y = world_y - window_bottom + half_tile
-                    self.grass_tile.draw(screen_x, screen_y, self.tile_size, self.tile_size)
+                # camera window 영역 안에 있는지 확인
+                if (world_x >= window_left and world_x < window_left + self.camera_width and
+                        world_y >= window_bottom and world_y < window_bottom + self.camera_height):
+                    # 화면 좌표로 변환 (중심점으로 보정 + 줌 적용)
+                    screen_x = (world_x - window_left) * self.zoom + half_tile * self.zoom
+                    screen_y = (world_y - window_bottom) * self.zoom + half_tile * self.zoom
+                    self.grass_tile.draw(screen_x, screen_y, self.tile_size * self.zoom, self.tile_size * self.zoom)
 
-        # 교토 이미지 그리기 (중앙에 고정)
-        kyoten_x = self.world_width // 2 - window_left
-        kyoten_y = self.world_height // 2 - window_bottom
-        self.kyoten_image.draw(kyoten_x, kyoten_y, self.world_width, self.world_height)
+        # 교토 이미지 그리기 (중앙에 고정 + 줌 적용)
+        kyoten_x = (self.world_width // 2 - window_left) * self.zoom
+        kyoten_y = (self.world_height // 2 - window_bottom) * self.zoom
+        self.kyoten_image.draw(kyoten_x, kyoten_y, self.world_width * self.zoom, self.world_height * self.zoom)
 
     def draw_tilemap(self):
-        """타일맵 그리기 - 스크롤링 적용"""
-        # 플레이어 위치 기준으로 window 계산
-        window_left = clamp(0, int(common.player.x) - self.cw // 2, self.world_width - self.cw)
-        window_bottom = clamp(0, int(common.player.y) - self.ch // 2, self.world_height - self.ch)
+        """타일맵 그리기 - 스크롤링 적용 + 2배 줌"""
+        # 플레이어 위치 기준으로 window 계산 (줌 적용)
+        window_left = clamp(0, int(common.player.x) - self.camera_width // 2, self.world_width - self.camera_width)
+        window_bottom = clamp(0, int(common.player.y) - self.camera_height // 2, self.world_height - self.camera_height)
 
         # 보이는 타일만 그리기
         start_tile_x = window_left // self.SCALED_TILE_SIZE
-        end_tile_x = min((window_left + self.cw) // self.SCALED_TILE_SIZE + 1, self.TILES_X)
+        end_tile_x = min((window_left + self.camera_width) // self.SCALED_TILE_SIZE + 1, self.TILES_X)
         start_tile_y = window_bottom // self.SCALED_TILE_SIZE
-        end_tile_y = min((window_bottom + self.ch) // self.SCALED_TILE_SIZE + 1, self.TILES_Y)
+        end_tile_y = min((window_bottom + self.camera_height) // self.SCALED_TILE_SIZE + 1, self.TILES_Y)
 
         # 타일 크기의 절반 (중심점 보정)
         half_tile = self.SCALED_TILE_SIZE // 2
@@ -231,25 +236,26 @@ class Background:
                 world_x = x * self.SCALED_TILE_SIZE
                 world_y = y * self.SCALED_TILE_SIZE
 
-                # 화면 좌표로 변환 (중심점으로 보정)
-                screen_x = world_x - window_left + half_tile
-                screen_y = world_y - window_bottom + half_tile
+                # 화면 좌표로 변환 (중심점으로 보정 + 줌 적용)
+                screen_x = (world_x - window_left) * self.zoom + half_tile * self.zoom
+                screen_y = (world_y - window_bottom) * self.zoom + half_tile * self.zoom
+
+                # 타일 크기도 줌 적용
+                tile_draw_size = self.SCALED_TILE_SIZE * self.zoom
 
                 # 타일 그리기
                 if self.current_map_number == 1:
                     if tile_value == 0:
-                        self.tile_images['ground1'].draw(screen_x, screen_y, self.SCALED_TILE_SIZE,
-                                                         self.SCALED_TILE_SIZE)
+                        self.tile_images['ground1'].draw(screen_x, screen_y, tile_draw_size, tile_draw_size)
                     elif tile_value == 1:
-                        self.tile_images['wall1'].draw(screen_x, screen_y, self.SCALED_TILE_SIZE, self.SCALED_TILE_SIZE)
+                        self.tile_images['wall1'].draw(screen_x, screen_y, tile_draw_size, tile_draw_size)
                 elif self.current_map_number == 2:
                     if tile_value == 0:
-                        self.tile_images['ground2'].draw(screen_x, screen_y, self.SCALED_TILE_SIZE,
-                                                         self.SCALED_TILE_SIZE)
+                        self.tile_images['ground2'].draw(screen_x, screen_y, tile_draw_size, tile_draw_size)
                     elif tile_value == 1:
-                        self.tile_images['wall2'].draw(screen_x, screen_y, self.SCALED_TILE_SIZE, self.SCALED_TILE_SIZE)
+                        self.tile_images['wall2'].draw(screen_x, screen_y, tile_draw_size, tile_draw_size)
                 elif self.current_map_number == 3:
-                    self.tile_images['ground3'].draw(screen_x, screen_y, self.SCALED_TILE_SIZE, self.SCALED_TILE_SIZE)
+                    self.tile_images['ground3'].draw(screen_x, screen_y, tile_draw_size, tile_draw_size)
 
     def draw(self):
         """통합 렌더링 - 스크롤링 방식"""

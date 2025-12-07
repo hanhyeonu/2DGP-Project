@@ -108,30 +108,34 @@ class Idle:
         draw_x = self.player.draw_x if hasattr(self.player, 'draw_x') else self.player.x
         draw_y = self.player.draw_y if hasattr(self.player, 'draw_y') else self.player.y
 
+        zoom = common.background.zoom
+        sprite_w = int(28 * zoom)
+        sprite_h = int(32 * zoom)
+
         if self.player.face_dir == 1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, '',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == 2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, '',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == 3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, '',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == -1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, 'h',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == -2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, 'h',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == -3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, 'h',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == 0:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 303, 28, 32, 0, '',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
         elif self.player.face_dir == 4:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 368, 28, 32, 0, '',
-                                                  draw_x, draw_y, 28, 32)
+                                                  draw_x, draw_y, sprite_w, sprite_h)
 
 
 class Run:
@@ -233,6 +237,8 @@ class Run:
         draw_x = self.player.draw_x if hasattr(self.player, 'draw_x') else self.player.x
         draw_y = self.player.draw_y if hasattr(self.player, 'draw_y') else self.player.y
 
+        zoom = common.background.zoom
+
         direction = abs(self.player.face_dir)
         flip = 'h' if self.player.face_dir < 0 else ''
 
@@ -251,7 +257,7 @@ class Run:
                     width, height,
                     0, flip,
                     draw_x, draw_y,
-                    width, height
+                    int(width * zoom), int(height * zoom)
                 )
 
 
@@ -373,17 +379,22 @@ class Player:
         self.state_machine.handle_state_event(('INPUT', event))
 
     def draw(self, camera=None):
-        # 스크롤링: 플레이어 위치 기준으로 화면 좌표 계산
+        # 스크롤링: 플레이어 위치 기준으로 화면 좌표 계산 (줌 적용)
         cw = get_canvas_width()
         ch = get_canvas_height()
 
-        # window 계산 (카메라가 볼 수 있는 영역)
-        window_left = clamp(0, int(self.x) - cw // 2, 2048 - cw)
-        window_bottom = clamp(0, int(self.y) - ch // 2, 2048 - ch)
+        # 줌 설정
+        zoom = common.background.zoom
+        camera_width = common.background.camera_width
+        camera_height = common.background.camera_height
 
-        # 플레이어의 화면 좌표 계산
-        self.draw_x = self.x - window_left
-        self.draw_y = self.y - window_bottom
+        # window 계산 (카메라가 볼 수 있는 영역)
+        window_left = clamp(0, int(self.x) - camera_width // 2, 2048 - camera_width)
+        window_bottom = clamp(0, int(self.y) - camera_height // 2, 2048 - camera_height)
+
+        # 플레이어의 화면 좌표 계산 (줌 적용)
+        self.draw_x = (self.x - window_left) * zoom
+        self.draw_y = (self.y - window_bottom) * zoom
 
         self.state_machine.draw()
 
@@ -417,10 +428,11 @@ class Player:
                 bow_angle = math.pi / 2
                 bow_x_offset, bow_y_offset = 0, -20
 
+            zoom = common.background.zoom
             self.bow_image.composite_draw(bow_angle, '',
-                                          self.draw_x + bow_x_offset,
-                                          self.draw_y + bow_y_offset,
-                                          30, 30)
+                                          self.draw_x + bow_x_offset * zoom,
+                                          self.draw_y + bow_y_offset * zoom,
+                                          int(30 * zoom), int(30 * zoom))
 
         if self.show_inventory:
             self.inventory_image.draw(512, 512, 512, 512)
@@ -428,8 +440,9 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
-        # 바운딩 박스 (화면 좌표 기준)
-        bb_half_size = 20
+        # 바운딩 박스 (화면 좌표 기준, 줌 적용)
+        zoom = common.background.zoom
+        bb_half_size = 20 * zoom
         draw_rectangle(
             self.draw_x - bb_half_size, self.draw_y - bb_half_size,
             self.draw_x + bb_half_size, self.draw_y + bb_half_size
