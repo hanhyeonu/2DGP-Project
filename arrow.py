@@ -74,7 +74,7 @@ class Arrow:
 
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
-        from pico2d import get_canvas_width, get_canvas_height, clamp
+        from pico2d import get_canvas_width, get_canvas_height, clamp, draw_rectangle
         import common
 
         window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
@@ -85,9 +85,18 @@ class Arrow:
 
         self.image.composite_draw(self.angle, '', draw_x, draw_y, 20, 20)
 
+        # 바운딩 박스 그리기
+        bb_half_size = 10
+        draw_rectangle(
+            draw_x - bb_half_size, draw_y - bb_half_size,
+            draw_x + bb_half_size, draw_y + bb_half_size
+        )
+
     def get_bb(self):
         return self.x - 10, self.y - 10, self.x + 10, self.y + 10
 
     def handle_collision(self, group, other):
         # 화살의 충돌 처리
-        pass
+        if group == 'arrow:wall':
+            # 벽과 충돌 시 화살 제거
+            game_world.remove_object(self)
