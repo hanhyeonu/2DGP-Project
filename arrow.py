@@ -72,6 +72,12 @@ class Arrow:
         self.x += self.dir_x * ARROW_SPEED_PPS * game_framework.frame_time
         self.y += self.dir_y * ARROW_SPEED_PPS * game_framework.frame_time
 
+        # 벽 충돌 체크 (타일맵 기반)
+        import common
+        if common.background.is_wall_at(self.x, self.y):
+            game_world.remove_object(self)
+            return
+
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
         from pico2d import get_canvas_width, get_canvas_height, clamp, draw_rectangle
@@ -96,7 +102,5 @@ class Arrow:
         return self.x - 10, self.y - 10, self.x + 10, self.y + 10
 
     def handle_collision(self, group, other):
-        # 화살의 충돌 처리
-        if group == 'arrow:wall':
-            # 벽과 충돌 시 화살 제거
-            game_world.remove_object(self)
+        # 화살의 충돌 처리 (벽은 타일맵 체크로 처리됨)
+        pass

@@ -308,6 +308,12 @@ class Player:
 
         self.state_machine.update()
 
+        # 벽 충돌 체크 (타일맵 기반)
+        if common.background.is_wall_at(self.x, self.y):
+            # 벽과 충돌 - 이전 위치로 복구
+            self.x = self.prev_x
+            self.y = self.prev_y
+
         # 플레이어는 맵 전체를 이동할 수 있어야 함 (0 ~ 2048)
         # 단, 캐릭터가 맵 밖으로 나가지는 않도록 제한
         self.x = clamp(0, self.x, 2048)
@@ -445,10 +451,6 @@ class Player:
         arrow = Arrow(self.x + offset_x, self.y + offset_y, self.face_dir)
         game_world.add_object(arrow, 1)
 
-        # 화살과 벽 충돌 페어 등록
-        for wall in common.background.walls:
-            game_world.add_collision_pair('arrow:wall', arrow, wall)
-
     def use_skill(self):
         if self.skill and not self.skill.is_active():
             self.skill.activate()
@@ -462,8 +464,5 @@ class Player:
         game_world.add_object(sword, 1)
 
     def handle_collision(self, group, other):
-        # 플레이어의 충돌 처리
-        if group == 'player:wall':
-            # 벽과 충돌 시 이전 위치로 되돌림
-            self.x = self.prev_x
-            self.y = self.prev_y
+        # 플레이어의 충돌 처리 (벽은 타일맵 체크로 처리됨)
+        pass
