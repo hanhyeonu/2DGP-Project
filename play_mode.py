@@ -23,21 +23,21 @@ def handle_events():
         # 맵 전환 키 (테스트용)
         elif event.type == SDL_KEYDOWN and event.key == SDLK_7:
             common.background.set_map(1)
-            # 맵1: 좌상단 박스 중앙 (타일 4,3 중심 = 288, 224)
+            # 맵1: 좌상단 박스 중앙 (배열 3,4 → 반전 후 월드 288, 1824)
             common.player.x = 288
-            common.player.y = 224
+            common.player.y = 1824
             print("맵1로 전환 - 플레이어 위치: 좌상단")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_8:
             common.background.set_map(2)
-            # 맵2: 중앙 박스 중앙 (타일 15,17 중심 = 992, 1120)
+            # 맵2: 중앙 박스 중앙 (배열 17,15 → 반전 후 월드 992, 928)
             common.player.x = 992
-            common.player.y = 1120
+            common.player.y = 928
             print("맵2로 전환 - 플레이어 위치: 중앙")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_9:
             common.background.set_map(3)
-            # 맵3: 맵 중앙 (타일 16,16 중심 = 1056, 1056)
+            # 맵3: 맵 중앙 (배열 16,16 → 반전 후 월드 1056, 992)
             common.player.x = 1056
-            common.player.y = 1056
+            common.player.y = 992
             print("맵3로 전환 - 플레이어 위치: 맵 중앙")
         elif event.type == SDL_KEYDOWN and event.key == SDLK_0:
             common.background.set_map(4)
