@@ -1,4 +1,5 @@
-from pico2d import load_image, draw_rectangle
+import common
+from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 from state_machine import StateMachine
 import game_world
@@ -44,7 +45,8 @@ class Idle:
         self.slime.image.clip_composite_draw(
             frame * 50, 200, 50, 50,
             0, '',
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
+            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
@@ -69,7 +71,7 @@ class Move:
         if self.slime.target_player:
             dx = self.slime.target_player.x - self.slime.x
             dy = self.slime.target_player.y - self.slime.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             # 공격 범위 안이고 쿨타임 끝나면 공격
             if distance < self.slime.attack_range and self.slime.cooldown_timer <= 0:
@@ -84,9 +86,9 @@ class Move:
                 self.slime.x += self.slime.dir_x * speed
                 self.slime.y += self.slime.dir_y * speed
 
-                # 화면 경계 체크
-                self.slime.x = max(0, min(1024, self.slime.x))
-                self.slime.y = max(0, min(1024, self.slime.y))
+                # 월드 좌표 범위 제한 (0 ~ 2048)
+                self.slime.x = max(0, min(2048, self.slime.x))
+                self.slime.y = max(0, min(2048, self.slime.y))
 
                 # face_dir 업데이트 (8방향 지원)
                 if abs(dx) > abs(dy) * 2:
@@ -98,11 +100,11 @@ class Move:
                 else:
                     # 대각선
                     if dx > 0 and dy > 0:
-                        self.slime.face_dir = 2   # 우상
+                        self.slime.face_dir = 2  # 우상
                     elif dx < 0 and dy > 0:
                         self.slime.face_dir = -2  # 좌상
                     elif dx > 0 and dy < 0:
-                        self.slime.face_dir = 3   # 우하
+                        self.slime.face_dir = 3  # 우하
                     else:
                         self.slime.face_dir = -3  # 좌하
 
@@ -112,7 +114,8 @@ class Move:
         self.slime.image.clip_composite_draw(
             frame * 50, 150, 50, 50,
             0, '',
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
+            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
@@ -137,7 +140,7 @@ class Attack:
 
             dx = self.target_x - self.slime.x
             dy = self.target_y - self.slime.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             if distance > 0:
                 self.dash_dir_x = dx / distance
@@ -168,9 +171,9 @@ class Attack:
             self.slime.x += self.dash_dir_x * dash_distance
             self.slime.y += self.dash_dir_y * dash_distance
 
-            # 화면 경계 체크
-            self.slime.x = max(0, min(1024, self.slime.x))
-            self.slime.y = max(0, min(1024, self.slime.y))
+            # 월드 좌표 범위 제한 (0 ~ 2048)
+            self.slime.x = max(0, min(2048, self.slime.x))
+            self.slime.y = max(0, min(2048, self.slime.y))
         else:
             self.slime.cooldown_timer = self.slime.attack_cooldown
             self.slime.state_machine.cur_state = self.slime.MOVE
@@ -196,13 +199,15 @@ class Attack:
         self.slime.image.clip_composite_draw(
             frame * 50, y, 50, 50,
             0, flip,
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x, self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
+            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
         )
 
 
 class EnemySlime:
     def __init__(self, player=None):
-        self.x, self.y = 700, 500  # 개구리와 다른 위치
+        # 월드 좌표로 초기화
+        self.x, self.y = 700, 1600  # 개구리와 다른 위치
         self.frame = 0
         self.face_dir = 1
         self.dir_x = 0
@@ -226,23 +231,21 @@ class EnemySlime:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        if camera:
-            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
-        else:
-            self.draw_x, self.draw_y = self.x, self.y
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        self.draw_x = self.x - window_left
+        self.draw_y = self.y - window_bottom
 
         self.state_machine.draw()
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # 바운딩 박스도 화면 좌표로
+        bb_half_size = 20
+        draw_rectangle(
+            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        )
 
     def get_bb(self):
         return self.x - 20, self.y - 20, self.x + 20, self.y + 20

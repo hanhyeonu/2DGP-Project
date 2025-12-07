@@ -1,4 +1,5 @@
-from pico2d import load_image, draw_rectangle
+import common
+from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 from state_machine import StateMachine
 import game_world
@@ -9,9 +10,9 @@ from bomb import Bomb
 class Idle:
     # 55x55 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 385, 'frames': 3},   # 오른쪽/왼쪽
-        4: {'y': 330, 'frames': 3},   # 위
-        0: {'y': 275, 'frames': 3}    # 아래
+        1: {'y': 385, 'frames': 3},  # 오른쪽/왼쪽
+        4: {'y': 330, 'frames': 3},  # 위
+        0: {'y': 275, 'frames': 3}  # 아래
     }
 
     def __init__(self, bommer):
@@ -49,16 +50,17 @@ class Idle:
             self.bommer.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x, self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+                self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
+                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
             )
 
 
 class Move:
     # 55x55 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 220, 'frames': 3},   # 오른쪽/왼쪽
-        4: {'y': 165, 'frames': 3},   # 위
-        0: {'y': 110, 'frames': 3}    # 아래
+        1: {'y': 220, 'frames': 3},  # 오른쪽/왼쪽
+        4: {'y': 165, 'frames': 3},  # 위
+        0: {'y': 110, 'frames': 3}  # 아래
     }
 
     def __init__(self, bommer):
@@ -82,7 +84,7 @@ class Move:
             # 플레이어와의 거리 계산
             dx = self.bommer.target_player.x - self.bommer.x
             dy = self.bommer.target_player.y - self.bommer.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             # 적절한 거리(100~200)를 유지하려고 함
             if distance < self.bommer.attack_range and distance > self.bommer.min_attack_range and self.bommer.cooldown_timer <= 0:
@@ -99,8 +101,8 @@ class Move:
                 self.bommer.y += self.bommer.dir_y * speed
 
                 # 화면 경계 체크
-                self.bommer.x = max(0, min(1024, self.bommer.x))
-                self.bommer.y = max(0, min(1024, self.bommer.y))
+                self.bommer.x = max(0, min(2048, self.bommer.x))
+                self.bommer.y = max(0, min(2048, self.bommer.y))
             elif distance > self.bommer.attack_range:
                 # 너무 멀면 접근
                 self.bommer.dir_x = dx / distance
@@ -111,8 +113,8 @@ class Move:
                 self.bommer.y += self.bommer.dir_y * speed
 
                 # 화면 경계 체크
-                self.bommer.x = max(0, min(1024, self.bommer.x))
-                self.bommer.y = max(0, min(1024, self.bommer.y))
+                self.bommer.x = max(0, min(2048, self.bommer.x))
+                self.bommer.y = max(0, min(2048, self.bommer.y))
 
             # face_dir 업데이트 (8방향 지원, 대각선은 좌우만 고려)
             if abs(dx) > abs(dy) * 2:
@@ -135,7 +137,8 @@ class Move:
             self.bommer.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x, self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+                self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
+                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
             )
 
 
@@ -193,13 +196,15 @@ class Attack:
         self.bommer.image.clip_composite_draw(
             frame * 55, self.SPRITE_COORDS['y'], 55, 55,
             0, flip,
-            self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x, self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+            self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
+            self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
         )
 
 
 class EnemyBommer:
     def __init__(self, player=None):
-        self.x, self.y = 800, 400  # 다른 몬스터와 겹치지 않는 위치
+        # 월드 좌표로 초기화
+        self.x, self.y = 400, 1900  # 다른 몬스터와 겹치지 않는 위치
         self.frame = 0
         self.face_dir = 1
         self.dir_x = 0
@@ -224,23 +229,21 @@ class EnemyBommer:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        if camera:
-            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
-        else:
-            self.draw_x, self.draw_y = self.x, self.y
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        self.draw_x = self.x - window_left
+        self.draw_y = self.y - window_bottom
 
         self.state_machine.draw()
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # 바운딩 박스도 화면 좌표로
+        bb_half_size = 20
+        draw_rectangle(
+            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        )
 
     def get_bb(self):
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22

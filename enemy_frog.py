@@ -1,6 +1,7 @@
-from pico2d import load_image, draw_rectangle
+from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 import game_world
+import common
 from state_machine import StateMachine
 import math
 
@@ -113,8 +114,9 @@ class Move:
                 self.frog.x += self.frog.dir_x * speed
                 self.frog.y += self.frog.dir_y * speed
 
-                self.frog.x = max(0, min(1024, self.frog.x))
-                self.frog.y = max(0, min(1024, self.frog.y))
+                # 월드 좌표 범위 제한 (0 ~ 2048)
+                self.frog.x = max(0, min(2048, self.frog.x))
+                self.frog.y = max(0, min(2048, self.frog.y))
 
                 if abs(dx) > abs(dy):
                     self.frog.face_dir = 1 if dx > 0 else -1
@@ -191,8 +193,9 @@ class Attack:
             self.frog.x += self.dash_dir_x * dash_distance
             self.frog.y += self.dash_dir_y * dash_distance
 
-            self.frog.x = max(0, min(1024, self.frog.x))
-            self.frog.y = max(0, min(1024, self.frog.y))
+            # 월드 좌표 범위 제한 (0 ~ 2048)
+            self.frog.x = max(0, min(2048, self.frog.x))
+            self.frog.y = max(0, min(2048, self.frog.y))
         else:
             self.frog.cooldown_timer = self.frog.attack_cooldown
             self.frog.state_machine.cur_state = self.frog.MOVE
@@ -217,7 +220,8 @@ class Attack:
 
 class EnemyFrog:
     def __init__(self, player=None):
-        self.x, self.y = 500, 500
+        # 월드 좌표로 초기화 (플레이어 근처에 스폰)
+        self.x, self.y = 500, 1700
         self.frame = 0
         self.face_dir = 1
         self.dir_x = 0
@@ -247,23 +251,21 @@ class EnemyFrog:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        if camera:
-            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
-        else:
-            self.draw_x, self.draw_y = self.x, self.y
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        self.draw_x = self.x - window_left
+        self.draw_y = self.y - window_bottom
 
         self.state_machine.draw()
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # 바운딩 박스도 화면 좌표로
+        bb_half_size = 15
+        draw_rectangle(
+            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        )
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15

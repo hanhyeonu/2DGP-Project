@@ -1,4 +1,5 @@
-from pico2d import load_image, draw_rectangle
+import common
+from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 from state_machine import StateMachine
 import game_world
@@ -17,9 +18,9 @@ ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
 class Idle:
     # 55x55 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 495, 'frames': 3},   # 오른쪽/왼쪽
-        4: {'y': 440, 'frames': 3},   # 위
-        0: {'y': 385, 'frames': 3}    # 아래
+        1: {'y': 495, 'frames': 3},  # 오른쪽/왼쪽
+        4: {'y': 440, 'frames': 3},  # 위
+        0: {'y': 385, 'frames': 3}  # 아래
     }
 
     def __init__(self, attacker):
@@ -57,16 +58,17 @@ class Idle:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
 class Move:
     # 55x55 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 330, 'frames': 3},   # 오른쪽/왼쪽
-        4: {'y': 275, 'frames': 3},   # 위
-        0: {'y': 220, 'frames': 3}    # 아래
+        1: {'y': 330, 'frames': 3},  # 오른쪽/왼쪽
+        4: {'y': 275, 'frames': 3},  # 위
+        0: {'y': 220, 'frames': 3}  # 아래
     }
 
     def __init__(self, attacker):
@@ -90,7 +92,7 @@ class Move:
             # 플레이어와의 거리 계산
             dx = self.attacker.target_player.x - self.attacker.x
             dy = self.attacker.target_player.y - self.attacker.y
-            distance = math.sqrt(dx**2 + dy**2)
+            distance = math.sqrt(dx ** 2 + dy ** 2)
 
             # 매우 가까운 거리이고 쿨타임 끝나면 공격
             if distance < self.attacker.attack_range and self.attacker.cooldown_timer <= 0:
@@ -107,8 +109,8 @@ class Move:
                 self.attacker.y += self.attacker.dir_y * speed
 
                 # 화면 경계 체크
-                self.attacker.x = max(0, min(1024, self.attacker.x))
-                self.attacker.y = max(0, min(1024, self.attacker.y))
+                self.attacker.x = max(0, min(2048, self.attacker.x))
+                self.attacker.y = max(0, min(2048, self.attacker.y))
 
                 # face_dir 업데이트 (4방향만: 1, -1, 0, 4)
                 if abs(dx) > abs(dy):
@@ -128,16 +130,17 @@ class Move:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
 class Attack:
     # 55x55 그리드 기반 스프라이트 좌표
     SPRITE_COORDS = {
-        1: {'y': 165, 'frames': 5},   # 오른쪽/왼쪽
-        4: {'y': 110, 'frames': 5},   # 위
-        0: {'y': 55, 'frames': 5}     # 아래
+        1: {'y': 165, 'frames': 5},  # 오른쪽/왼쪽
+        4: {'y': 110, 'frames': 5},  # 위
+        0: {'y': 55, 'frames': 5}  # 아래
     }
 
     def __init__(self, attacker):
@@ -173,7 +176,7 @@ class Attack:
             if self.attacker.target_player:
                 dx = self.attacker.target_player.x - self.attacker.x
                 dy = self.attacker.target_player.y - self.attacker.y
-                distance = math.sqrt(dx**2 + dy**2)
+                distance = math.sqrt(dx ** 2 + dy ** 2)
 
                 if distance < self.attacker.attack_range * 1.5:
                     self.attacker.state_machine.cur_state = self.attacker.IDLE
@@ -194,13 +197,15 @@ class Attack:
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
-                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x, self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
             )
 
 
 class EnemyAttacker:
     def __init__(self, player=None):
-        self.x, self.y = 600, 300  # 다른 몬스터와 겹치지 않는 위치
+        # 월드 좌표로 초기화
+        self.x, self.y = 600, 1500  # 다른 몬스터와 겹치지 않는 위치
         self.frame = 0
         self.face_dir = 1
         self.dir_x = 0
@@ -224,23 +229,21 @@ class EnemyAttacker:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        if camera:
-            self.draw_x, self.draw_y = camera.apply(self.x, self.y)
-        else:
-            self.draw_x, self.draw_y = self.x, self.y
+        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
+        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+
+        self.draw_x = self.x - window_left
+        self.draw_y = self.y - window_bottom
 
         self.state_machine.draw()
 
-        if camera:
-            bb = self.get_bb()
-            offset_x = self.draw_x - self.x
-            offset_y = self.draw_y - self.y
-            draw_rectangle(
-                bb[0] + offset_x, bb[1] + offset_y,
-                bb[2] + offset_x, bb[3] + offset_y
-            )
-        else:
-            draw_rectangle(*self.get_bb())
+        # 바운딩 박스도 화면 좌표로
+        bb_half_size = 20
+        draw_rectangle(
+            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        )
 
     def get_bb(self):
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22
