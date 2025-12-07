@@ -258,8 +258,8 @@ class Run:
 class Player:
     def __init__(self):
         # 월드 좌표 (맵1 좌상단 박스에서 시작)
-        # 타일 (4, 3) 중심 = (4×64+32, 3×64+32) = (288, 224)
-        self.x, self.y = 288, 224
+        # 배열 (3, 4) → Y축 반전 → 월드 (288, 1824)
+        self.x, self.y = 288, 1824
 
         # 화면 표시 좌표 (항상 화면 중앙)
         self.screen_x = get_canvas_width() // 2
