@@ -51,6 +51,9 @@ def handle_events():
                 enemy_frog = EnemyFrog(common.player)
                 game_world.add_object(enemy_frog, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_frog)
+                # 적과 벽 충돌 페어 등록
+                for wall in common.background.walls:
+                    game_world.add_collision_pair('enemy:wall', enemy_frog, wall)
             else:
                 game_world.remove_object(enemy_frog)
                 enemy_frog = None
@@ -60,6 +63,9 @@ def handle_events():
                 enemy_slime = EnemySlime(common.player)
                 game_world.add_object(enemy_slime, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_slime)
+                # 적과 벽 충돌 페어 등록
+                for wall in common.background.walls:
+                    game_world.add_collision_pair('enemy:wall', enemy_slime, wall)
             else:
                 game_world.remove_object(enemy_slime)
                 enemy_slime = None
@@ -69,6 +75,9 @@ def handle_events():
                 enemy_attacker = EnemyAttacker(common.player)
                 game_world.add_object(enemy_attacker, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_attacker)
+                # 적과 벽 충돌 페어 등록
+                for wall in common.background.walls:
+                    game_world.add_collision_pair('enemy:wall', enemy_attacker, wall)
             else:
                 game_world.remove_object(enemy_attacker)
                 enemy_attacker = None
@@ -78,6 +87,9 @@ def handle_events():
                 enemy_bommer = EnemyBommer(common.player)
                 game_world.add_object(enemy_bommer, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_bommer)
+                # 적과 벽 충돌 페어 등록
+                for wall in common.background.walls:
+                    game_world.add_collision_pair('enemy:wall', enemy_bommer, wall)
             else:
                 game_world.remove_object(enemy_bommer)
                 enemy_bommer = None
@@ -101,6 +113,18 @@ def init():
     enemy_slime = None
     enemy_attacker = None
     enemy_bommer = None
+
+    # 벽 생성 및 충돌 페어 설정
+    common.background.create_walls()
+
+    # 충돌 페어 등록
+    # player:wall - 플레이어와 벽 충돌
+    game_world.add_collision_pair('player:wall', common.player, None)
+    for wall in common.background.walls:
+        game_world.add_collision_pair('player:wall', None, wall)
+
+    # arrow:wall - 화살과 벽 충돌 (동적으로 추가될 예정)
+    # enemy:wall - 적과 벽 충돌 (동적으로 추가될 예정)
 
 
 def finish():
