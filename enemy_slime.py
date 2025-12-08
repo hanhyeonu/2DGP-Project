@@ -1,4 +1,5 @@
 import common
+import play_mode
 from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 from state_machine import StateMachine
@@ -40,13 +41,19 @@ class Idle:
                 self.slime.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.slime.x - play_mode.background.window_left
+            screen_y = self.slime.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.slime.x
+            screen_y = self.slime.y
+
         # 모든 방향 동일 - 행 1 사용
         frame = int(self.slime.frame) % 5
         self.slime.image.clip_composite_draw(
             frame * 50, 200, 50, 50,
             0, '',
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
-            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            screen_x, screen_y, 50, 50
         )
 
 
@@ -109,13 +116,19 @@ class Move:
                         self.slime.face_dir = -3  # 좌하
 
     def draw(self):
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.slime.x - play_mode.background.window_left
+            screen_y = self.slime.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.slime.x
+            screen_y = self.slime.y
+
         # 모든 방향 동일 - 행 2 사용
         frame = int(self.slime.frame) % 7
         self.slime.image.clip_composite_draw(
             frame * 50, 150, 50, 50,
             0, '',
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
-            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            screen_x, screen_y, 50, 50
         )
 
 
@@ -180,6 +193,13 @@ class Attack:
             self.slime.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.slime.x - play_mode.background.window_left
+            screen_y = self.slime.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.slime.x
+            screen_y = self.slime.y
+
         frame = int(self.slime.frame) % 5
 
         # face_dir에 따라 다른 행 사용
@@ -199,8 +219,7 @@ class Attack:
         self.slime.image.clip_composite_draw(
             frame * 50, y, 50, 50,
             0, flip,
-            self.slime.draw_x if hasattr(self.slime, 'draw_x') else self.slime.x,
-            self.slime.draw_y if hasattr(self.slime, 'draw_y') else self.slime.y, 50, 50
+            screen_x, screen_y, 50, 50
         )
 
 
@@ -231,20 +250,20 @@ class EnemySlime:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
-        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
-        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
-
-        self.draw_x = self.x - window_left
-        self.draw_y = self.y - window_bottom
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.x - play_mode.background.window_left
+            screen_y = self.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.x
+            screen_y = self.y
 
         self.state_machine.draw()
 
-        # 바운딩 박스도 화면 좌표로
+        # 바운딩 박스
         bb_half_size = 20
         draw_rectangle(
-            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
-            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+            screen_x - bb_half_size, screen_y - bb_half_size,
+            screen_x + bb_half_size, screen_y + bb_half_size
         )
 
     def get_bb(self):

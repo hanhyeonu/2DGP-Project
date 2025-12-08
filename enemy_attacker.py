@@ -1,4 +1,5 @@
 import common
+import play_mode
 from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_height, clamp
 import game_framework
 from state_machine import StateMachine

@@ -1,6 +1,7 @@
 from pico2d import load_image
 import game_world
 import game_framework
+import play_mode
 import math
 
 SLASH_SPEED = 5.0
@@ -64,30 +65,21 @@ class Sword:
             self.slash_frame = (self.slash_frame + 1) % 8
 
     def draw(self, camera=None):
-        # 플레이어의 화면 좌표 사용
-        if self.player and hasattr(self.player, 'draw_x'):
-            player_x = self.player.draw_x
-            player_y = self.player.draw_y
+        # 플레이어의 화면 좌표 계산
+        if hasattr(play_mode, 'background') and play_mode.background:
+            player_x = self.player_x - play_mode.background.window_left
+            player_y = self.player_y - play_mode.background.window_bottom
         else:
-            # fallback: 월드 좌표를 화면 좌표로 변환
-            from pico2d import get_canvas_width, get_canvas_height, clamp
-            import common
-
-            window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
-            window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
-
-            player_x = self.player_x - window_left
-            player_y = self.player_y - window_bottom
+            player_x = self.player_x
+            player_y = self.player_y
 
         sword_x = player_x + self.sword_distance * math.cos(self.current_angle)
         sword_y = player_y + self.sword_distance * math.sin(self.current_angle)
 
-        zoom = common.background.zoom
-
         self.sword_image.composite_draw(
             self.current_angle - math.pi / 2, '',
             sword_x, sword_y,
-            int(22 * zoom), int(70 * zoom)
+            22, 70
         )
 
         slash_distance = self.sword_distance + 35
@@ -100,5 +92,5 @@ class Sword:
             32, 96,
             self.current_angle - math.pi / 2 + math.pi / 2, '',
             slash_x, slash_y,
-            int(32 * zoom), int(96 * zoom)
+            32, 96
         )

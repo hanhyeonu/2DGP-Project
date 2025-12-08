@@ -2,6 +2,7 @@ from pico2d import load_image, draw_rectangle, get_canvas_width, get_canvas_heig
 import game_framework
 import game_world
 import common
+import play_mode
 from state_machine import StateMachine
 import math
 
@@ -59,8 +60,12 @@ class Idle:
                 self.frog.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
-        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
-        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.frog.x - play_mode.background.window_left
+            screen_y = self.frog.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.frog.x
+            screen_y = self.frog.y
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -72,7 +77,7 @@ class Idle:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                draw_x, draw_y, 40, 40
+                screen_x, screen_y, 40, 40
             )
 
 
@@ -124,8 +129,12 @@ class Move:
                     self.frog.face_dir = 4 if dy > 0 else 0
 
     def draw(self):
-        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
-        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.frog.x - play_mode.background.window_left
+            screen_y = self.frog.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.frog.x
+            screen_y = self.frog.y
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -137,7 +146,7 @@ class Move:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                draw_x, draw_y, 40, 40
+                screen_x, screen_y, 40, 40
             )
 
 
@@ -202,8 +211,12 @@ class Attack:
             self.frog.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
-        draw_x = self.frog.draw_x if hasattr(self.frog, 'draw_x') else self.frog.x
-        draw_y = self.frog.draw_y if hasattr(self.frog, 'draw_y') else self.frog.y
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.frog.x - play_mode.background.window_left
+            screen_y = self.frog.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.frog.x
+            screen_y = self.frog.y
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -214,7 +227,7 @@ class Attack:
             self.frog.image.clip_composite_draw(
                 coords['x'], coords['y'], 40, 40,
                 0, flip,
-                draw_x, draw_y, 40, 40
+                screen_x, screen_y, 40, 40
             )
 
 
@@ -251,20 +264,20 @@ class EnemyFrog:
         self.state_machine.update()
 
     def draw(self, camera=None):
-        # 스크롤링: 플레이어 기준으로 화면 좌표 계산
-        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
-        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
-
-        self.draw_x = self.x - window_left
-        self.draw_y = self.y - window_bottom
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.x - play_mode.background.window_left
+            screen_y = self.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.x
+            screen_y = self.y
 
         self.state_machine.draw()
 
-        # 바운딩 박스도 화면 좌표로
+        # 바운딩 박스
         bb_half_size = 15
         draw_rectangle(
-            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
-            self.draw_x + bb_half_size, self.draw_y + bb_half_size
+            screen_x - bb_half_size, screen_y - bb_half_size,
+            screen_x + bb_half_size, screen_y + bb_half_size
         )
 
     def get_bb(self):

@@ -1,6 +1,7 @@
-from pico2d import load_image
+from pico2d import load_image, draw_rectangle
 import game_world
 import game_framework
+import play_mode
 import math
 
 # Arrow Speed
@@ -79,27 +80,20 @@ class Arrow:
             return
 
     def draw(self, camera=None):
-        # 스크롤링: 플레이어 기준으로 화면 좌표 계산 (줌 적용)
-        from pico2d import get_canvas_width, get_canvas_height, clamp, draw_rectangle
-        import common
+        if hasattr(play_mode, 'background') and play_mode.background:
+            screen_x = self.x - play_mode.background.window_left
+            screen_y = self.y - play_mode.background.window_bottom
+        else:
+            screen_x = self.x
+            screen_y = self.y
 
-        zoom = common.background.zoom
-        camera_width = common.background.camera_width
-        camera_height = common.background.camera_height
+        self.image.composite_draw(self.angle, '', screen_x, screen_y, 20, 20)
 
-        window_left = clamp(0, int(common.player.x) - camera_width // 2, 2048 - camera_width)
-        window_bottom = clamp(0, int(common.player.y) - camera_height // 2, 2048 - camera_height)
-
-        draw_x = (self.x - window_left) * zoom
-        draw_y = (self.y - window_bottom) * zoom
-
-        self.image.composite_draw(self.angle, '', draw_x, draw_y, int(20 * zoom), int(20 * zoom))
-
-        # 바운딩 박스 그리기 (줌 적용)
-        bb_half_size = 10 * zoom
+        # 바운딩 박스 그리기
+        bb_half_size = 10
         draw_rectangle(
-            draw_x - bb_half_size, draw_y - bb_half_size,
-            draw_x + bb_half_size, draw_y + bb_half_size
+            screen_x - bb_half_size, screen_y - bb_half_size,
+            screen_x + bb_half_size, screen_y + bb_half_size
         )
 
     def get_bb(self):

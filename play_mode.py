@@ -49,6 +49,7 @@ def handle_events():
             # F1: 개구리 토글
             if enemy_frog is None:
                 enemy_frog = EnemyFrog(common.player)
+                enemy_frog.x, enemy_frog.y = 1100, 1100
                 game_world.add_object(enemy_frog, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_frog)
             else:
@@ -58,6 +59,7 @@ def handle_events():
             # F2: 슬라임 토글
             if enemy_slime is None:
                 enemy_slime = EnemySlime(common.player)
+                enemy_slime.x, enemy_slime.y = 950, 1100
                 game_world.add_object(enemy_slime, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_slime)
             else:
@@ -67,6 +69,7 @@ def handle_events():
             # F3: 칼 든 몬스터 토글
             if enemy_attacker is None:
                 enemy_attacker = EnemyAttacker(common.player)
+                enemy_attacker.x, enemy_attacker.y = 1100, 950
                 game_world.add_object(enemy_attacker, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_attacker)
             else:
@@ -76,6 +79,7 @@ def handle_events():
             # F4: 폭탄 몬스터 토글
             if enemy_bommer is None:
                 enemy_bommer = EnemyBommer(common.player)
+                enemy_bommer.x, enemy_bommer.y = 950, 950
                 game_world.add_object(enemy_bommer, 2)
                 game_world.add_collision_pair('player:enemy', common.player, enemy_bommer)
             else:
@@ -86,15 +90,22 @@ def handle_events():
 
 
 def init():
-    global enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
+    global player, background, enemy_frog, enemy_slime, enemy_attacker, enemy_bommer
 
-    # 통합 배경 생성 (common에 저장)
-    common.background = Background()
-    game_world.add_object(common.background, 0)
+    # 먼저 player 생성
+    player = Player()
+    game_world.add_object(player, 2)
 
-    # 플레이어 생성 (common에 저장)
-    common.player = Player()
-    game_world.add_object(common.player, 2)
+    # background 생성 (player 전달)
+    background = Background(player)
+    game_world.add_object(background, 0)
+
+    # player에 background 연결
+    player.background = background
+
+    # common에도 저장 (기존 코드 호환성)
+    common.player = player
+    common.background = background
 
     # 몬스터는 None으로 초기화
     enemy_frog = None
