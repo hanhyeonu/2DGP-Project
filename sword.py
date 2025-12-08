@@ -67,24 +67,35 @@ class Sword:
     def draw(self, camera=None):
         # 플레이어의 화면 좌표 계산
         if hasattr(play_mode, 'background') and play_mode.background:
-            player_x = self.player_x - play_mode.background.window_left
-            player_y = self.player_y - play_mode.background.window_bottom
+            player_x = (self.player_x - play_mode.background.window_left) * play_mode.background.zoom
+            player_y = (self.player_y - play_mode.background.window_bottom) * play_mode.background.zoom
+            sword_dist = self.sword_distance * play_mode.background.zoom
+            slash_dist = (self.sword_distance + 35) * play_mode.background.zoom
+            sword_w = int(22 * play_mode.background.zoom)
+            sword_h = int(70 * play_mode.background.zoom)
+            slash_w = int(32 * play_mode.background.zoom)
+            slash_h = int(96 * play_mode.background.zoom)
         else:
             player_x = self.player_x
             player_y = self.player_y
+            sword_dist = self.sword_distance
+            slash_dist = self.sword_distance + 35
+            sword_w = 22
+            sword_h = 70
+            slash_w = 32
+            slash_h = 96
 
-        sword_x = player_x + self.sword_distance * math.cos(self.current_angle)
-        sword_y = player_y + self.sword_distance * math.sin(self.current_angle)
+        sword_x = player_x + sword_dist * math.cos(self.current_angle)
+        sword_y = player_y + sword_dist * math.sin(self.current_angle)
 
         self.sword_image.composite_draw(
             self.current_angle - math.pi / 2, '',
             sword_x, sword_y,
-            22, 70
+            sword_w, sword_h
         )
 
-        slash_distance = self.sword_distance + 35
-        slash_x = player_x + slash_distance * math.cos(self.current_angle)
-        slash_y = player_y + slash_distance * math.sin(self.current_angle)
+        slash_x = player_x + slash_dist * math.cos(self.current_angle)
+        slash_y = player_y + slash_dist * math.sin(self.current_angle)
 
         frame_x = self.slash_frame * 32
         self.slash_image.clip_composite_draw(
@@ -92,5 +103,5 @@ class Sword:
             32, 96,
             self.current_angle - math.pi / 2 + math.pi / 2, '',
             slash_x, slash_y,
-            32, 96
+            slash_w, slash_h
         )

@@ -61,11 +61,13 @@ class Idle:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.frog.x - play_mode.background.window_left
-            screen_y = self.frog.y - play_mode.background.window_bottom
+            screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(40 * play_mode.background.zoom)
         else:
             screen_x = self.frog.x
             screen_y = self.frog.y
+            size = 40
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -77,7 +79,7 @@ class Idle:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                screen_x, screen_y, 40, 40
+                screen_x, screen_y, size, size
             )
 
 
@@ -108,6 +110,12 @@ class Move:
             dy = self.frog.target_player.y - self.frog.y
             distance = math.sqrt(dx ** 2 + dy ** 2)
 
+            # 추적 거리 밖이면 Idle로 전환
+            if distance > self.frog.chase_range:
+                self.frog.state_machine.cur_state = self.frog.IDLE
+                self.frog.IDLE.enter(('OUT_OF_RANGE', None))
+                return
+
             if distance < self.frog.attack_range and self.frog.cooldown_timer <= 0:
                 self.frog.state_machine.cur_state = self.frog.ATTACK
                 self.frog.ATTACK.enter(('ATTACK', None))
@@ -115,9 +123,18 @@ class Move:
                 self.frog.dir_x = dx / distance
                 self.frog.dir_y = dy / distance
 
+                # 이동 전 위치 저장
+                prev_x, prev_y = self.frog.x, self.frog.y
+
                 speed = self.frog.chase_speed * game_framework.frame_time
                 self.frog.x += self.frog.dir_x * speed
                 self.frog.y += self.frog.dir_y * speed
+
+                # 벽 충돌 체크
+                if hasattr(play_mode, 'background') and play_mode.background:
+                    if play_mode.background.is_wall_at(self.frog.x, self.frog.y):
+                        self.frog.x = prev_x
+                        self.frog.y = prev_y
 
                 # 월드 좌표 범위 제한 (0 ~ 2048)
                 self.frog.x = max(0, min(2048, self.frog.x))
@@ -130,11 +147,13 @@ class Move:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.frog.x - play_mode.background.window_left
-            screen_y = self.frog.y - play_mode.background.window_bottom
+            screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(40 * play_mode.background.zoom)
         else:
             screen_x = self.frog.x
             screen_y = self.frog.y
+            size = 40
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -146,7 +165,7 @@ class Move:
             self.frog.image.clip_composite_draw(
                 frame * 40, coords['y'], 40, 40,
                 0, flip,
-                screen_x, screen_y, 40, 40
+                screen_x, screen_y, size, size
             )
 
 
@@ -198,9 +217,18 @@ class Attack:
             return
 
         if self.attack_timer < self.attack_duration:
+            # 이동 전 위치 저장
+            prev_x, prev_y = self.frog.x, self.frog.y
+
             dash_distance = self.dash_speed * game_framework.frame_time
             self.frog.x += self.dash_dir_x * dash_distance
             self.frog.y += self.dash_dir_y * dash_distance
+
+            # 벽 충돌 체크
+            if hasattr(play_mode, 'background') and play_mode.background:
+                if play_mode.background.is_wall_at(self.frog.x, self.frog.y):
+                    self.frog.x = prev_x
+                    self.frog.y = prev_y
 
             # 월드 좌표 범위 제한 (0 ~ 2048)
             self.frog.x = max(0, min(2048, self.frog.x))
@@ -212,11 +240,13 @@ class Attack:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.frog.x - play_mode.background.window_left
-            screen_y = self.frog.y - play_mode.background.window_bottom
+            screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(40 * play_mode.background.zoom)
         else:
             screen_x = self.frog.x
             screen_y = self.frog.y
+            size = 40
 
         dir_key = abs(self.frog.face_dir) if abs(self.frog.face_dir) == 1 else self.frog.face_dir
 
@@ -227,7 +257,7 @@ class Attack:
             self.frog.image.clip_composite_draw(
                 coords['x'], coords['y'], 40, 40,
                 0, flip,
-                screen_x, screen_y, 40, 40
+                screen_x, screen_y, size, size
             )
 
 
@@ -246,6 +276,8 @@ class EnemyFrog:
         self.chase_speed = 60
         self.attack_cooldown = 2.0
         self.cooldown_timer = 0
+        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.background = None  # 벽 충돌용
 
         self.IDLE = Idle(self)
         self.MOVE = Move(self)
@@ -265,16 +297,17 @@ class EnemyFrog:
 
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.x - play_mode.background.window_left
-            screen_y = self.y - play_mode.background.window_bottom
+            screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            bb_half_size = int(15 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
+            bb_half_size = 15
 
         self.state_machine.draw()
 
         # 바운딩 박스
-        bb_half_size = 15
         draw_rectangle(
             screen_x - bb_half_size, screen_y - bb_half_size,
             screen_x + bb_half_size, screen_y + bb_half_size

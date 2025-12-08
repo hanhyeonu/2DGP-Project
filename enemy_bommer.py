@@ -47,11 +47,17 @@ class Idle:
             frame = int(self.bommer.frame) % coords['frames']
             flip = 'h' if self.bommer.face_dir == -1 else ''
 
+            import play_mode
+            if hasattr(self.bommer, 'draw_x'):
+                size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+            else:
+                size = 55
+
             self.bommer.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
                 self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
-                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, size, size
             )
 
 
@@ -86,6 +92,12 @@ class Move:
             dy = self.bommer.target_player.y - self.bommer.y
             distance = math.sqrt(dx ** 2 + dy ** 2)
 
+            # 추적 거리 밖이면 Idle로 전환
+            if distance > self.bommer.chase_range:
+                self.bommer.state_machine.cur_state = self.bommer.IDLE
+                self.bommer.IDLE.enter(('OUT_OF_RANGE', None))
+                return
+
             # 적절한 거리(100~200)를 유지하려고 함
             if distance < self.bommer.attack_range and distance > self.bommer.min_attack_range and self.bommer.cooldown_timer <= 0:
                 # 공격 범위 안이고 쿨타임 끝나면 공격
@@ -96,9 +108,19 @@ class Move:
                 self.bommer.dir_x = -dx / distance
                 self.bommer.dir_y = -dy / distance
 
+                # 이동 전 위치 저장
+                prev_x, prev_y = self.bommer.x, self.bommer.y
+
                 speed = self.bommer.chase_speed * game_framework.frame_time
                 self.bommer.x += self.bommer.dir_x * speed
                 self.bommer.y += self.bommer.dir_y * speed
+
+                # 벽 충돌 체크
+                import play_mode
+                if hasattr(play_mode, 'background') and play_mode.background:
+                    if play_mode.background.is_wall_at(self.bommer.x, self.bommer.y):
+                        self.bommer.x = prev_x
+                        self.bommer.y = prev_y
 
                 # 화면 경계 체크
                 self.bommer.x = max(0, min(2048, self.bommer.x))
@@ -108,9 +130,19 @@ class Move:
                 self.bommer.dir_x = dx / distance
                 self.bommer.dir_y = dy / distance
 
+                # 이동 전 위치 저장
+                prev_x, prev_y = self.bommer.x, self.bommer.y
+
                 speed = self.bommer.chase_speed * game_framework.frame_time
                 self.bommer.x += self.bommer.dir_x * speed
                 self.bommer.y += self.bommer.dir_y * speed
+
+                # 벽 충돌 체크
+                import play_mode
+                if hasattr(play_mode, 'background') and play_mode.background:
+                    if play_mode.background.is_wall_at(self.bommer.x, self.bommer.y):
+                        self.bommer.x = prev_x
+                        self.bommer.y = prev_y
 
                 # 화면 경계 체크
                 self.bommer.x = max(0, min(2048, self.bommer.x))
@@ -134,11 +166,17 @@ class Move:
             frame = int(self.bommer.frame) % coords['frames']
             flip = 'h' if self.bommer.face_dir == -1 else ''
 
+            import play_mode
+            if hasattr(self.bommer, 'draw_x'):
+                size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+            else:
+                size = 55
+
             self.bommer.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
                 self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
-                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+                self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, size, size
             )
 
 
@@ -193,11 +231,17 @@ class Attack:
         # 왼쪽 방향 계열이면 flip
         flip = 'h' if self.bommer.face_dir == -1 or self.bommer.face_dir == -2 or self.bommer.face_dir == -3 else ''
 
+        import play_mode
+        if hasattr(self.bommer, 'draw_x'):
+            size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+        else:
+            size = 55
+
         self.bommer.image.clip_composite_draw(
             frame * 55, self.SPRITE_COORDS['y'], 55, 55,
             0, flip,
             self.bommer.draw_x if hasattr(self.bommer, 'draw_x') else self.bommer.x,
-            self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, 55, 55
+            self.bommer.draw_y if hasattr(self.bommer, 'draw_y') else self.bommer.y, size, size
         )
 
 
@@ -216,6 +260,8 @@ class EnemyBommer:
         self.chase_speed = 55  # 느린 속도
         self.attack_cooldown = 3.0  # 긴 쿨타임 (3초)
         self.cooldown_timer = 0
+        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.background = None  # 벽 충돌용
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -230,16 +276,21 @@ class EnemyBommer:
 
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
-        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
-        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
-
-        self.draw_x = self.x - window_left
-        self.draw_y = self.y - window_bottom
+        import play_mode
+        if hasattr(play_mode, 'background') and play_mode.background:
+            self.draw_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            self.draw_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            bb_half_size = int(20 * play_mode.background.zoom)
+        else:
+            window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+            window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+            self.draw_x = self.x - window_left
+            self.draw_y = self.y - window_bottom
+            bb_half_size = 20
 
         self.state_machine.draw()
 
         # 바운딩 박스도 화면 좌표로
-        bb_half_size = 20
         draw_rectangle(
             self.draw_x - bb_half_size, self.draw_y - bb_half_size,
             self.draw_x + bb_half_size, self.draw_y + bb_half_size

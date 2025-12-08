@@ -56,11 +56,16 @@ class Idle:
             frame = int(self.attacker.frame) % coords['frames']
             flip = 'h' if self.attacker.face_dir == -1 else ''
 
+            if hasattr(self.attacker, 'draw_x'):
+                size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+            else:
+                size = 55
+
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
                 self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
-                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, size, size
             )
 
 
@@ -95,6 +100,12 @@ class Move:
             dy = self.attacker.target_player.y - self.attacker.y
             distance = math.sqrt(dx ** 2 + dy ** 2)
 
+            # 추적 거리 밖이면 Idle로 전환
+            if distance > self.attacker.chase_range:
+                self.attacker.state_machine.cur_state = self.attacker.IDLE
+                self.attacker.IDLE.enter(('OUT_OF_RANGE', None))
+                return
+
             # 매우 가까운 거리이고 쿨타임 끝나면 공격
             if distance < self.attacker.attack_range and self.attacker.cooldown_timer <= 0:
                 # Attack 상태로 전환
@@ -105,9 +116,19 @@ class Move:
                 self.attacker.dir_x = dx / distance
                 self.attacker.dir_y = dy / distance
 
+                # 이동 전 위치 저장
+                prev_x, prev_y = self.attacker.x, self.attacker.y
+
                 speed = self.attacker.chase_speed * game_framework.frame_time
                 self.attacker.x += self.attacker.dir_x * speed
                 self.attacker.y += self.attacker.dir_y * speed
+
+                # 벽 충돌 체크
+                import play_mode
+                if hasattr(play_mode, 'background') and play_mode.background:
+                    if play_mode.background.is_wall_at(self.attacker.x, self.attacker.y):
+                        self.attacker.x = prev_x
+                        self.attacker.y = prev_y
 
                 # 화면 경계 체크
                 self.attacker.x = max(0, min(2048, self.attacker.x))
@@ -128,11 +149,16 @@ class Move:
             frame = int(self.attacker.frame) % coords['frames']
             flip = 'h' if self.attacker.face_dir == -1 else ''
 
+            if hasattr(self.attacker, 'draw_x'):
+                size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+            else:
+                size = 55
+
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
                 self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
-                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, size, size
             )
 
 
@@ -195,11 +221,16 @@ class Attack:
             frame = int(self.attacker.frame) % coords['frames']
             flip = 'h' if self.attacker.face_dir == -1 else ''
 
+            if hasattr(self.attacker, 'draw_x'):
+                size = int(55 * play_mode.background.zoom) if hasattr(play_mode, 'background') and play_mode.background else 55
+            else:
+                size = 55
+
             self.attacker.image.clip_composite_draw(
                 frame * 55, coords['y'], 55, 55,
                 0, flip,
                 self.attacker.draw_x if hasattr(self.attacker, 'draw_x') else self.attacker.x,
-                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, 55, 55
+                self.attacker.draw_y if hasattr(self.attacker, 'draw_y') else self.attacker.y, size, size
             )
 
 
@@ -217,6 +248,8 @@ class EnemyAttacker:
         self.chase_speed = 70  # 중간 속도
         self.attack_cooldown = 1.5  # 빠른 쿨타임
         self.cooldown_timer = 0
+        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.background = None  # 벽 충돌용
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -231,16 +264,20 @@ class EnemyAttacker:
 
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
-        window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
-        window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
-
-        self.draw_x = self.x - window_left
-        self.draw_y = self.y - window_bottom
+        if hasattr(play_mode, 'background') and play_mode.background:
+            self.draw_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            self.draw_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            bb_half_size = int(20 * play_mode.background.zoom)
+        else:
+            window_left = clamp(0, int(common.player.x) - get_canvas_width() // 2, 2048 - get_canvas_width())
+            window_bottom = clamp(0, int(common.player.y) - get_canvas_height() // 2, 2048 - get_canvas_height())
+            self.draw_x = self.x - window_left
+            self.draw_y = self.y - window_bottom
+            bb_half_size = 20
 
         self.state_machine.draw()
 
         # 바운딩 박스도 화면 좌표로
-        bb_half_size = 20
         draw_rectangle(
             self.draw_x - bb_half_size, self.draw_y - bb_half_size,
             self.draw_x + bb_half_size, self.draw_y + bb_half_size

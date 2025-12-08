@@ -53,13 +53,15 @@ class Bomb:
 
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.x - play_mode.background.window_left
-            screen_y = self.y - play_mode.background.window_bottom
+            screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(30 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
+            size = 30
 
-        self.image.draw(screen_x, screen_y, 30, 30)
+        self.image.draw(screen_x, screen_y, size, size)
 
     def get_bb(self):
         return self.x - 15, self.y - 15, self.x + 15, self.y + 15

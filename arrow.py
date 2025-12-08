@@ -81,16 +81,19 @@ class Arrow:
 
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.x - play_mode.background.window_left
-            screen_y = self.y - play_mode.background.window_bottom
+            screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(20 * play_mode.background.zoom)
+            bb_half_size = int(10 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
+            size = 20
+            bb_half_size = 10
 
-        self.image.composite_draw(self.angle, '', screen_x, screen_y, 20, 20)
+        self.image.composite_draw(self.angle, '', screen_x, screen_y, size, size)
 
         # 바운딩 박스 그리기
-        bb_half_size = 10
         draw_rectangle(
             screen_x - bb_half_size, screen_y - bb_half_size,
             screen_x + bb_half_size, screen_y + bb_half_size

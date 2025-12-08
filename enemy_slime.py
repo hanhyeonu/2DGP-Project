@@ -42,18 +42,20 @@ class Idle:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.slime.x - play_mode.background.window_left
-            screen_y = self.slime.y - play_mode.background.window_bottom
+            screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(50 * play_mode.background.zoom)
         else:
             screen_x = self.slime.x
             screen_y = self.slime.y
+            size = 50
 
         # 모든 방향 동일 - 행 1 사용
         frame = int(self.slime.frame) % 5
         self.slime.image.clip_composite_draw(
             frame * 50, 200, 50, 50,
             0, '',
-            screen_x, screen_y, 50, 50
+            screen_x, screen_y, size, size
         )
 
 
@@ -80,6 +82,12 @@ class Move:
             dy = self.slime.target_player.y - self.slime.y
             distance = math.sqrt(dx ** 2 + dy ** 2)
 
+            # 추적 거리 밖이면 Idle로 전환
+            if distance > self.slime.chase_range:
+                self.slime.state_machine.cur_state = self.slime.IDLE
+                self.slime.IDLE.enter(('OUT_OF_RANGE', None))
+                return
+
             # 공격 범위 안이고 쿨타임 끝나면 공격
             if distance < self.slime.attack_range and self.slime.cooldown_timer <= 0:
                 self.slime.state_machine.cur_state = self.slime.ATTACK
@@ -89,9 +97,19 @@ class Move:
                 self.slime.dir_x = dx / distance
                 self.slime.dir_y = dy / distance
 
+                # 이동 전 위치 저장
+                prev_x, prev_y = self.slime.x, self.slime.y
+
                 speed = self.slime.chase_speed * game_framework.frame_time
                 self.slime.x += self.slime.dir_x * speed
                 self.slime.y += self.slime.dir_y * speed
+
+                # 벽 충돌 체크
+                import play_mode
+                if hasattr(play_mode, 'background') and play_mode.background:
+                    if play_mode.background.is_wall_at(self.slime.x, self.slime.y):
+                        self.slime.x = prev_x
+                        self.slime.y = prev_y
 
                 # 월드 좌표 범위 제한 (0 ~ 2048)
                 self.slime.x = max(0, min(2048, self.slime.x))
@@ -117,18 +135,20 @@ class Move:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.slime.x - play_mode.background.window_left
-            screen_y = self.slime.y - play_mode.background.window_bottom
+            screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(50 * play_mode.background.zoom)
         else:
             screen_x = self.slime.x
             screen_y = self.slime.y
+            size = 50
 
         # 모든 방향 동일 - 행 2 사용
         frame = int(self.slime.frame) % 7
         self.slime.image.clip_composite_draw(
             frame * 50, 150, 50, 50,
             0, '',
-            screen_x, screen_y, 50, 50
+            screen_x, screen_y, size, size
         )
 
 
@@ -180,9 +200,19 @@ class Attack:
 
         # 돌진
         if self.attack_timer < self.attack_duration:
+            # 이동 전 위치 저장
+            prev_x, prev_y = self.slime.x, self.slime.y
+
             dash_distance = self.dash_speed * game_framework.frame_time
             self.slime.x += self.dash_dir_x * dash_distance
             self.slime.y += self.dash_dir_y * dash_distance
+
+            # 벽 충돌 체크
+            import play_mode
+            if hasattr(play_mode, 'background') and play_mode.background:
+                if play_mode.background.is_wall_at(self.slime.x, self.slime.y):
+                    self.slime.x = prev_x
+                    self.slime.y = prev_y
 
             # 월드 좌표 범위 제한 (0 ~ 2048)
             self.slime.x = max(0, min(2048, self.slime.x))
@@ -194,11 +224,13 @@ class Attack:
 
     def draw(self):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.slime.x - play_mode.background.window_left
-            screen_y = self.slime.y - play_mode.background.window_bottom
+            screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            size = int(50 * play_mode.background.zoom)
         else:
             screen_x = self.slime.x
             screen_y = self.slime.y
+            size = 50
 
         frame = int(self.slime.frame) % 5
 
@@ -219,7 +251,7 @@ class Attack:
         self.slime.image.clip_composite_draw(
             frame * 50, y, 50, 50,
             0, flip,
-            screen_x, screen_y, 50, 50
+            screen_x, screen_y, size, size
         )
 
 
@@ -237,6 +269,8 @@ class EnemySlime:
         self.chase_speed = 50  # 개구리보다 느림
         self.attack_cooldown = 2.5  # 쿨타임 2.5초
         self.cooldown_timer = 0
+        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.background = None  # 벽 충돌용
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -251,16 +285,17 @@ class EnemySlime:
 
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
-            screen_x = self.x - play_mode.background.window_left
-            screen_y = self.y - play_mode.background.window_bottom
+            screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
+            screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
+            bb_half_size = int(20 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
+            bb_half_size = 20
 
         self.state_machine.draw()
 
         # 바운딩 박스
-        bb_half_size = 20
         draw_rectangle(
             screen_x - bb_half_size, screen_y - bb_half_size,
             screen_x + bb_half_size, screen_y + bb_half_size

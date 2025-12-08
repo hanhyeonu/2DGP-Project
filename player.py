@@ -105,36 +105,44 @@ class Idle:
         self.player.frame = (self.player.frame + 2 * ACTION_PER_TIME * game_framework.frame_time) % 2
 
     def draw(self):
-        screen_x = self.player.x - self.player.background.window_left if self.player.background else self.player.x
-        screen_y = self.player.y - self.player.background.window_bottom if self.player.background else self.player.y
+        if self.player.background:
+            screen_x = (self.player.x - self.player.background.window_left) * self.player.background.zoom
+            screen_y = (self.player.y - self.player.background.window_bottom) * self.player.background.zoom
+            draw_w = int(28 * self.player.background.zoom)
+            draw_h = int(32 * self.player.background.zoom)
+        else:
+            screen_x = self.player.x
+            screen_y = self.player.y
+            draw_w = 28
+            draw_h = 32
 
         sprite_w = 28
         sprite_h = 32
 
         if self.player.face_dir == 1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, '',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == 2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, '',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == 3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, '',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == -1:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 272, 28, 32, 0, 'h',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == -2:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 400, 28, 32, 0, 'h',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == -3:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 336, 28, 32, 0, 'h',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == 0:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 303, 28, 32, 0, '',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
         elif self.player.face_dir == 4:
             self.player.image.clip_composite_draw(int(self.player.frame) * 28 + 450, 512 - 368, 28, 32, 0, '',
-                                                  screen_x, screen_y, sprite_w, sprite_h)
+                                                  screen_x, screen_y, draw_w, draw_h)
 
 
 class Run:
@@ -233,8 +241,12 @@ class Run:
         self.update_face_dir()
 
     def draw(self):
-        screen_x = self.player.x - self.player.background.window_left if self.player.background else self.player.x
-        screen_y = self.player.y - self.player.background.window_bottom if self.player.background else self.player.y
+        if self.player.background:
+            screen_x = (self.player.x - self.player.background.window_left) * self.player.background.zoom
+            screen_y = (self.player.y - self.player.background.window_bottom) * self.player.background.zoom
+        else:
+            screen_x = self.player.x
+            screen_y = self.player.y
 
         direction = abs(self.player.face_dir)
         flip = 'h' if self.player.face_dir < 0 else ''
@@ -249,19 +261,26 @@ class Run:
                 width = coords['width'][frame]
                 height = coords['height']
 
+                if self.player.background:
+                    draw_w = int(width * self.player.background.zoom)
+                    draw_h = int(height * self.player.background.zoom)
+                else:
+                    draw_w = width
+                    draw_h = height
+
                 self.player.image.clip_composite_draw(
                     x, y,
                     width, height,
                     0, flip,
                     screen_x, screen_y,
-                    width, height
+                    draw_w, draw_h
                 )
 
 
 class Player:
     def __init__(self, background=None):
-        # 월드 좌표 (맵 중앙에서 시작)
-        self.x, self.y = 1024, 1024
+        # 월드 좌표 (왼쪽 상단 방에서 시작)
+        self.x, self.y = 288, 1824
 
         # 이전 프레임 위치 (충돌 처리용)
         self.prev_x, self.prev_y = self.x, self.y
@@ -375,8 +394,12 @@ class Player:
 
     def draw(self, camera=None):
         # 스크롤링: 화면 좌표 계산
-        screen_x = self.x - self.background.window_left if self.background else self.x
-        screen_y = self.y - self.background.window_bottom if self.background else self.y
+        if self.background:
+            screen_x = (self.x - self.background.window_left) * self.background.zoom
+            screen_y = (self.y - self.background.window_bottom) * self.background.zoom
+        else:
+            screen_x = self.x
+            screen_y = self.y
 
         self.state_machine.draw()
 
@@ -410,10 +433,19 @@ class Player:
                 bow_angle = math.pi / 2
                 bow_x_offset, bow_y_offset = 0, -20
 
+            if self.background:
+                bow_offset_x = bow_x_offset * self.background.zoom
+                bow_offset_y = bow_y_offset * self.background.zoom
+                bow_size = int(30 * self.background.zoom)
+            else:
+                bow_offset_x = bow_x_offset
+                bow_offset_y = bow_y_offset
+                bow_size = 30
+
             self.bow_image.composite_draw(bow_angle, '',
-                                          screen_x + bow_x_offset,
-                                          screen_y + bow_y_offset,
-                                          30, 30)
+                                          screen_x + bow_offset_x,
+                                          screen_y + bow_offset_y,
+                                          bow_size, bow_size)
 
         if self.show_inventory:
             self.inventory_image.draw(512, 512, 512, 512)
@@ -422,7 +454,10 @@ class Player:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
         # 바운딩 박스 (화면 좌표 기준)
-        bb_half_size = 20
+        if self.background:
+            bb_half_size = int(20 * self.background.zoom)
+        else:
+            bb_half_size = 20
         draw_rectangle(
             screen_x - bb_half_size, screen_y - bb_half_size,
             screen_x + bb_half_size, screen_y + bb_half_size
