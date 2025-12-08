@@ -24,6 +24,7 @@ class Arrow:
         self.x, self.y = x, y
         self.face_dir = face_dir
         self.start_x, self.start_y = x, y
+        self.is_dead = False  # 제거 마크
 
         self.dir_x = 0
         self.dir_y = 0
@@ -65,8 +66,13 @@ class Arrow:
                 self.dir_y /= length
 
     def update(self):
+        if self.is_dead:
+            game_world.remove_object(self)
+            return
+
         distance = math.sqrt((self.x - self.start_x) ** 2 + (self.y - self.start_y) ** 2)
         if distance > MAX_DISTANCE:
+            self.is_dead = True
             game_world.remove_object(self)
             return
 
@@ -76,6 +82,7 @@ class Arrow:
         # 벽 충돌 체크 (타일맵 기반)
         import common
         if common.background.is_wall_at(self.x, self.y):
+            self.is_dead = True
             game_world.remove_object(self)
             return
 
@@ -103,5 +110,14 @@ class Arrow:
         return self.x - 10, self.y - 10, self.x + 10, self.y + 10
 
     def handle_collision(self, group, other):
-        # 화살의 충돌 처리 (벽은 타일맵 체크로 처리됨)
-        pass
+        """몬스터와 충돌 시 화살 제거"""
+        if self.is_dead:
+            return
+
+        if group == 'arrow:monster':
+            # 몬스터가 이미 죽었으면 무시
+            if hasattr(other, 'is_dead') and other.is_dead:
+                return
+            # 제거 마크만 하고 실제 제거는 update에서
+            self.is_dead = True
+            print(f"Arrow hit monster! Marking for removal")

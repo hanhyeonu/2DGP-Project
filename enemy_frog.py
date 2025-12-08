@@ -60,6 +60,10 @@ class Idle:
                 self.frog.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.frog.hit_timer > 0 and int(self.frog.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -146,6 +150,10 @@ class Move:
                     self.frog.face_dir = 4 if dy > 0 else 0
 
     def draw(self):
+        # 깜빡임 처리
+        if self.frog.hit_timer > 0 and int(self.frog.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -180,7 +188,7 @@ class Attack:
         self.frog = frog
         self.attack_duration = 0.5
         self.attack_timer = 0
-        self.dash_speed = 300
+        self.dash_speed = 150  # 300 -> 150으로 감소
         self.target_x = 0
         self.target_y = 0
         self.dash_dir_x = 0
@@ -188,6 +196,7 @@ class Attack:
 
     def enter(self, e):
         self.attack_timer = 0
+        self.hitbox_created = False
 
         if self.frog.target_player:
             self.target_x = self.frog.target_player.x
@@ -208,6 +217,16 @@ class Attack:
         pass
 
     def do(self):
+        # 히트박스는 돌진 시작 시 한 번만 생성
+        if not self.hitbox_created:
+            from attack_hitbox import AttackHitbox
+
+            hitbox = AttackHitbox(self.frog, self.frog.x, self.frog.y,
+                                 50, 50, 0.5)
+            game_world.add_object(hitbox, 3)
+            game_world.add_collision_pair('monster_attack:player', hitbox, None)
+            self.hitbox_created = True
+
         self.attack_timer += game_framework.frame_time
 
         if self.frog.target_player and game_world.collide(self.frog, self.frog.target_player):
@@ -239,6 +258,10 @@ class Attack:
             self.frog.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.frog.hit_timer > 0 and int(self.frog.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.frog.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.frog.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -274,10 +297,21 @@ class EnemyFrog:
         self.target_player = player
         self.attack_range = 100
         self.chase_speed = 60
-        self.attack_cooldown = 2.0
+        self.attack_cooldown = 3.5
         self.cooldown_timer = 0
-        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.chase_range = 300  # 300픽셀 이내만 추적
         self.background = None  # 벽 충돌용
+
+        # 체력 시스템
+        self.hp = 2
+        self.is_dead = False
+
+        # 피격 깜빡임 시스템
+        self.hit_timer = 0
+        self.hit_duration = 0.5
+
+        # 중복 히트 방지 (이미 맞은 히트박스 추적)
+        self.hit_by_hitboxes = set()
 
         self.IDLE = Idle(self)
         self.MOVE = Move(self)
@@ -295,15 +329,19 @@ class EnemyFrog:
     def update(self):
         self.state_machine.update()
 
+        # 피격 깜빡임 타이머 감소
+        if self.hit_timer > 0:
+            self.hit_timer -= game_framework.frame_time
+
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
-            bb_half_size = int(15 * play_mode.background.zoom)
+            bb_half_size = int(25 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
-            bb_half_size = 15
+            bb_half_size = 25
 
         self.state_machine.draw()
 
@@ -314,7 +352,36 @@ class EnemyFrog:
         )
 
     def get_bb(self):
-        return self.x - 15, self.y - 15, self.x + 15, self.y + 15
+        """바운딩 박스 (50x50)"""
+        return self.x - 25, self.y - 25, self.x + 25, self.y + 25
 
     def handle_collision(self, group, other):
-        pass
+        # 이미 죽었으면 무시
+        if self.is_dead:
+            return
+
+        if group == 'player_attack:monster':
+            # 같은 히트박스로부터는 한 번만 데미지 받기
+            if other in self.hit_by_hitboxes:
+                return
+            self.hit_by_hitboxes.add(other)
+
+            self.hp -= 1
+            print(f"Frog hit! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Frog defeated!")
+
+        elif group == 'arrow:monster':
+            # 화살은 별도 처리 (화살 자체가 한 번만 맞음)
+            self.hp -= 1
+            print(f"Frog hit by arrow! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Frog defeated!")

@@ -6,9 +6,7 @@ import game_world
 import game_framework
 import common
 from state_machine import StateMachine
-from arrow import Arrow
 from skill import BowSkill
-from sword import Sword
 import math
 
 
@@ -105,6 +103,10 @@ class Idle:
         self.player.frame = (self.player.frame + 2 * ACTION_PER_TIME * game_framework.frame_time) % 2
 
     def draw(self):
+        # 깜빡임 처리: 피격 중일 때 0.1초마다 on/off
+        if self.player.hit_timer > 0 and int(self.player.hit_timer * 10) % 2 == 1:
+            return
+
         if self.player.background:
             screen_x = (self.player.x - self.player.background.window_left) * self.player.background.zoom
             screen_y = (self.player.y - self.player.background.window_bottom) * self.player.background.zoom
@@ -241,6 +243,10 @@ class Run:
         self.update_face_dir()
 
     def draw(self):
+        # 깜빡임 처리: 피격 중일 때 0.1초마다 on/off
+        if self.player.hit_timer > 0 and int(self.player.hit_timer * 10) % 2 == 1:
+            return
+
         if self.player.background:
             screen_x = (self.player.x - self.player.background.window_left) * self.player.background.zoom
             screen_y = (self.player.y - self.player.background.window_bottom) * self.player.background.zoom
@@ -297,6 +303,7 @@ class Player:
         self.bow_image = load_image('item_bow_C.png')
         self.inventory_image = load_image('inventory.png')
         self.worldmap_image = load_image('worldmap.png')
+        self.health_bar_image = load_image('LifeBarU.png')
 
         self.show_bow = False
         self.bow_timer = 0
@@ -306,6 +313,14 @@ class Player:
         self.current_weapon = 'bow'
         self.skill = BowSkill(self)
         self.is_attacking = False
+
+        # 체력 시스템
+        self.max_hp = 100
+        self.hp = 100
+
+        # 피격 깜빡임 시스템
+        self.hit_timer = 0
+        self.hit_duration = 0.5
 
         self.IDLE = Idle(self)
         self.RUN = Run(self)
@@ -345,6 +360,10 @@ class Player:
             self.bow_timer -= game_framework.frame_time
             if self.bow_timer <= 0:
                 self.show_bow = False
+
+        # 피격 깜빡임 타이머 감소
+        if self.hit_timer > 0:
+            self.hit_timer -= game_framework.frame_time
 
         if self.skill and self.skill.is_active():
             self.skill.update()
@@ -453,20 +472,25 @@ class Player:
         if self.show_worldmap:
             self.worldmap_image.draw(512, 512, 1024, 576)
 
+        # 체력바 그리기 (플레이어 머리 위)
+        self.draw_health_bar(screen_x, screen_y)
+
         # 바운딩 박스 (화면 좌표 기준)
         if self.background:
-            bb_half_size = int(20 * self.background.zoom)
+            bb_half_size = int(12 * self.background.zoom)
         else:
-            bb_half_size = 20
+            bb_half_size = 12
         draw_rectangle(
             screen_x - bb_half_size, screen_y - bb_half_size,
             screen_x + bb_half_size, screen_y + bb_half_size
         )
 
     def get_bb(self):
-        return self.x - 20, self.y - 20, self.x + 20, self.y + 20
+        return self.x - 12, self.y - 12, self.x + 12, self.y + 12
 
     def fire_arrow(self):
+        from arrow import Arrow
+
         self.show_bow = True
         self.bow_timer = 0.1
 
@@ -479,6 +503,9 @@ class Player:
         arrow = Arrow(self.x + offset_x, self.y + offset_y, self.face_dir)
         game_world.add_object(arrow, 1)
 
+        # 화살-몬스터 충돌 쌍 등록
+        game_world.add_collision_pair('arrow:monster', arrow, None)
+
     def use_skill(self):
         if self.skill and not self.skill.is_active():
             self.skill.activate()
@@ -487,10 +514,84 @@ class Player:
         self.show_inventory = not self.show_inventory
 
     def sword_attack(self):
+        from sword import Sword
+        from attack_hitbox import AttackHitbox
+
         self.is_attacking = True
+
         sword = Sword(self.x, self.y, self.face_dir, self)
         game_world.add_object(sword, 1)
 
+        # 방향별 오프셋
+        offset_x, offset_y = 0, 0
+        if self.face_dir == 1:
+            offset_x = 40
+        elif self.face_dir == -1:
+            offset_x = -40
+        elif self.face_dir == 4:
+            offset_y = 40
+        elif self.face_dir == 0:
+            offset_y = -40
+        elif self.face_dir == 2:
+            offset_x, offset_y = 30, 30
+        elif self.face_dir == -2:
+            offset_x, offset_y = -30, 30
+        elif self.face_dir == 3:
+            offset_x, offset_y = 30, -30
+        elif self.face_dir == -3:
+            offset_x, offset_y = -30, -30
+
+        hitbox = AttackHitbox(self, self.x + offset_x, self.y + offset_y,
+                             60, 60, 0.2)
+        game_world.add_object(hitbox, 3)
+        game_world.add_collision_pair('player_attack:monster', hitbox, None)
+
+    def draw_health_bar(self, screen_x, screen_y):
+        """체력바 그리기"""
+        if self.background:
+            bar_y_offset = int(30 * self.background.zoom)
+            bar_width = int(28 * self.background.zoom)  # 플레이어 크기와 동일
+            bar_height = int(4 * self.background.zoom)
+        else:
+            bar_y_offset = 30
+            bar_width = 28
+            bar_height = 4
+
+        # 체력 비율 계산
+        hp_ratio = max(0, self.hp / self.max_hp)
+
+        # 체력바 그리기 (플레이어 머리 위)
+        bar_x = screen_x
+        bar_y = screen_y + bar_y_offset
+
+        # 체력바 이미지를 비율에 맞게 잘라서 그리기
+        if hp_ratio > 0:
+            # LifeBarU.png의 왼쪽부터 hp_ratio만큼만 그리기
+            source_width = int(28 * hp_ratio)
+            draw_width = int(bar_width * hp_ratio)
+
+            # clip_draw(sx, sy, width, height, x, y, w, h)
+            self.health_bar_image.clip_draw(
+                0, 0, source_width, 4,
+                bar_x - bar_width // 2 + draw_width // 2, bar_y,
+                draw_width, bar_height
+            )
+
+    def take_damage(self, damage):
+        """데미지 받기"""
+        self.hp -= damage
+        self.hit_timer = self.hit_duration
+        print(f"Player took {damage} damage! HP: {self.hp}/{self.max_hp}")
+
+        # 체력이 0 이하가 되면 게임 종료
+        if self.hp <= 0:
+            self.hp = 0
+            print("Player defeated! Game Over!")
+            import game_framework
+            game_framework.quit()
+
     def handle_collision(self, group, other):
-        # 플레이어의 충돌 처리 (벽은 타일맵 체크로 처리됨)
-        pass
+        if group == 'monster_attack:player':
+            pass  # 넉백은 히트박스에서 처리
+        elif group == 'explosion:player':
+            pass  # 폭발 데미지는 explosion에서 처리

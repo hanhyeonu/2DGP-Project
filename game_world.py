@@ -1,4 +1,5 @@
 world = [[] for _ in range(4)]
+objects = world  # alias for compatibility
 collision_pairs = {}
 
 def add_object(o, depth = 0):

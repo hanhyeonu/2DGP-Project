@@ -41,6 +41,10 @@ class Idle:
                 self.slime.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.slime.hit_timer > 0 and int(self.slime.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -134,6 +138,10 @@ class Move:
                         self.slime.face_dir = -3  # 좌하
 
     def draw(self):
+        # 깜빡임 처리
+        if self.slime.hit_timer > 0 and int(self.slime.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -157,7 +165,7 @@ class Attack:
         self.slime = slime
         self.attack_duration = 0.6
         self.attack_timer = 0
-        self.dash_speed = 250
+        self.dash_speed = 125  # 250 -> 125로 감소
         self.target_x = 0
         self.target_y = 0
         self.dash_dir_x = 0
@@ -166,6 +174,7 @@ class Attack:
     def enter(self, e):
         self.attack_timer = 0
         self.slime.frame = 0
+        self.hitbox_created = False
 
         if self.slime.target_player:
             self.target_x = self.slime.target_player.x
@@ -186,6 +195,16 @@ class Attack:
         pass
 
     def do(self):
+        # 히트박스는 돌진 시작 시 한 번만 생성
+        if not self.hitbox_created:
+            from attack_hitbox import AttackHitbox
+
+            hitbox = AttackHitbox(self.slime, self.slime.x, self.slime.y,
+                                 50, 50, 0.6)
+            game_world.add_object(hitbox, 3)
+            game_world.add_collision_pair('monster_attack:player', hitbox, None)
+            self.hitbox_created = True
+
         self.attack_timer += game_framework.frame_time
 
         # 프레임 업데이트 (5프레임)
@@ -223,6 +242,10 @@ class Attack:
             self.slime.MOVE.enter(('TIME_OUT', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.slime.hit_timer > 0 and int(self.slime.hit_timer * 10) % 2 == 1:
+            return
+
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.slime.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.slime.y - play_mode.background.window_bottom) * play_mode.background.zoom
@@ -267,10 +290,21 @@ class EnemySlime:
         self.target_player = player
         self.attack_range = 120  # 개구리보다 조금 더 먼 거리에서 공격
         self.chase_speed = 50  # 개구리보다 느림
-        self.attack_cooldown = 2.5  # 쿨타임 2.5초
+        self.attack_cooldown = 4.0  # 쿨타임 4.0초
         self.cooldown_timer = 0
-        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.chase_range = 300  # 300픽셀 이내만 추적
         self.background = None  # 벽 충돌용
+
+        # 체력 시스템
+        self.hp = 2
+        self.is_dead = False
+
+        # 피격 깜빡임 시스템
+        self.hit_timer = 0
+        self.hit_duration = 0.5
+
+        # 중복 히트 방지 (이미 맞은 히트박스 추적)
+        self.hit_by_hitboxes = set()
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -283,15 +317,19 @@ class EnemySlime:
     def update(self):
         self.state_machine.update()
 
+        # 피격 깜빡임 타이머 감소
+        if self.hit_timer > 0:
+            self.hit_timer -= game_framework.frame_time
+
     def draw(self, camera=None):
         if hasattr(play_mode, 'background') and play_mode.background:
             screen_x = (self.x - play_mode.background.window_left) * play_mode.background.zoom
             screen_y = (self.y - play_mode.background.window_bottom) * play_mode.background.zoom
-            bb_half_size = int(20 * play_mode.background.zoom)
+            bb_half_size = int(25 * play_mode.background.zoom)
         else:
             screen_x = self.x
             screen_y = self.y
-            bb_half_size = 20
+            bb_half_size = 25
 
         self.state_machine.draw()
 
@@ -302,7 +340,36 @@ class EnemySlime:
         )
 
     def get_bb(self):
-        return self.x - 20, self.y - 20, self.x + 20, self.y + 20
+        """바운딩 박스 (50x50)"""
+        return self.x - 25, self.y - 25, self.x + 25, self.y + 25
 
     def handle_collision(self, group, other):
-        pass
+        # 이미 죽었으면 무시
+        if self.is_dead:
+            return
+
+        if group == 'player_attack:monster':
+            # 같은 히트박스로부터는 한 번만 데미지 받기
+            if other in self.hit_by_hitboxes:
+                return
+            self.hit_by_hitboxes.add(other)
+
+            self.hp -= 1
+            print(f"Slime hit! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Slime defeated!")
+
+        elif group == 'arrow:monster':
+            # 화살은 별도 처리 (화살 자체가 한 번만 맞음)
+            self.hp -= 1
+            print(f"Slime hit by arrow! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Slime defeated!")

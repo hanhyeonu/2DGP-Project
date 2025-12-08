@@ -36,8 +36,18 @@ class Bomb:
     def update(self):
         self.elapsed_time += game_framework.frame_time
 
-        # 비행 시간 종료 시 폭탄 제거
+        # 비행 시간 종료 시 폭탄 제거 및 폭발 생성
         if self.elapsed_time >= self.flight_time:
+            # 폭발 생성
+            from explosion import Explosion
+            explosion = Explosion(self.target_x, self.target_y)
+            game_world.add_object(explosion, 2)
+
+            # 폭발-플레이어 충돌 쌍 등록
+            if hasattr(play_mode, 'player'):
+                game_world.add_collision_pair('explosion:player', explosion, play_mode.player)
+
+            # 폭탄 제거
             game_world.remove_object(self)
             return
 

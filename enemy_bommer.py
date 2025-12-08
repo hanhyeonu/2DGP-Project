@@ -39,6 +39,10 @@ class Idle:
                 self.bommer.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.bommer.hit_timer > 0 and int(self.bommer.hit_timer * 10) % 2 == 1:
+            return
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.bommer.face_dir) if abs(self.bommer.face_dir) == 1 else self.bommer.face_dir
 
@@ -158,6 +162,10 @@ class Move:
                 self.bommer.face_dir = 1 if dx > 0 else -1
 
     def draw(self):
+        # 깜빡임 처리
+        if self.bommer.hit_timer > 0 and int(self.bommer.hit_timer * 10) % 2 == 1:
+            return
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.bommer.face_dir) if abs(self.bommer.face_dir) == 1 else self.bommer.face_dir
 
@@ -212,6 +220,7 @@ class Attack:
 
             # 공격 시점의 플레이어 위치로 폭탄 생성
             if self.bommer.target_player:
+                from bomb import Bomb
                 bomb = Bomb(
                     self.bommer.x,
                     self.bommer.y,
@@ -227,6 +236,10 @@ class Attack:
             self.bommer.MOVE.enter(('ATTACK_END', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.bommer.hit_timer > 0 and int(self.bommer.hit_timer * 10) % 2 == 1:
+            return
+
         frame = int(self.bommer.frame) % 5
         # 왼쪽 방향 계열이면 flip
         flip = 'h' if self.bommer.face_dir == -1 or self.bommer.face_dir == -2 or self.bommer.face_dir == -3 else ''
@@ -258,10 +271,21 @@ class EnemyBommer:
         self.attack_range = 200  # 원거리 공격 (200픽셀)
         self.min_attack_range = 100  # 너무 가까우면 후퇴
         self.chase_speed = 55  # 느린 속도
-        self.attack_cooldown = 3.0  # 긴 쿨타임 (3초)
+        self.attack_cooldown = 5.0  # 긴 쿨타임 (5초)
         self.cooldown_timer = 0
-        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.chase_range = 300  # 300픽셀 이내만 추적
         self.background = None  # 벽 충돌용
+
+        # 체력 시스템
+        self.hp = 2
+        self.is_dead = False
+
+        # 피격 깜빡임 시스템
+        self.hit_timer = 0
+        self.hit_duration = 0.5
+
+        # 중복 히트 방지 (이미 맞은 히트박스 추적)
+        self.hit_by_hitboxes = set()
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -273,6 +297,10 @@ class EnemyBommer:
 
     def update(self):
         self.state_machine.update()
+
+        # 피격 깜빡임 타이머 감소
+        if self.hit_timer > 0:
+            self.hit_timer -= game_framework.frame_time
 
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
@@ -300,4 +328,32 @@ class EnemyBommer:
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22
 
     def handle_collision(self, group, other):
-        pass
+        # 이미 죽었으면 무시
+        if self.is_dead:
+            return
+
+        if group == 'player_attack:monster':
+            # 같은 히트박스로부터는 한 번만 데미지 받기
+            if other in self.hit_by_hitboxes:
+                return
+            self.hit_by_hitboxes.add(other)
+
+            self.hp -= 1
+            print(f"Bommer hit! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Bommer defeated!")
+
+        elif group == 'arrow:monster':
+            # 화살은 별도 처리 (화살 자체가 한 번만 맞음)
+            self.hp -= 1
+            print(f"Bommer hit by arrow! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Bommer defeated!")

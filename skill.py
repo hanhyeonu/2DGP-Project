@@ -71,5 +71,8 @@ class BowSkill(Skill):
         arrow = Arrow(self.player.x + offset_x, self.player.y + offset_y, self.player.face_dir, angle)
         game_world.add_object(arrow, 1)
 
+        # 화살-몬스터 충돌 쌍 등록
+        game_world.add_collision_pair('arrow:monster', arrow, None)
+
     def is_active(self):
         return self.angles and self.arrow_count < self.total_arrows

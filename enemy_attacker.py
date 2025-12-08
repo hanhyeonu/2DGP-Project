@@ -48,6 +48,10 @@ class Idle:
                 self.attacker.MOVE.enter(('START_CHASE', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.attacker.hit_timer > 0 and int(self.attacker.hit_timer * 10) % 2 == 1:
+            return
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.attacker.face_dir) if abs(self.attacker.face_dir) == 1 else self.attacker.face_dir
 
@@ -141,6 +145,10 @@ class Move:
                     self.attacker.face_dir = 4 if dy > 0 else 0
 
     def draw(self):
+        # 깜빡임 처리
+        if self.attacker.hit_timer > 0 and int(self.attacker.hit_timer * 10) % 2 == 1:
+            return
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.attacker.face_dir) if abs(self.attacker.face_dir) == 1 else self.attacker.face_dir
 
@@ -174,10 +182,13 @@ class Attack:
         self.attacker = attacker
         self.attack_duration = 0.5  # 공격 애니메이션 시간
         self.attack_timer = 0
+        self.hitbox_delay = 0.2  # 히트박스 생성 딜레이
+        self.hitbox_created = False
 
     def enter(self, e):
         self.attack_timer = 0
         self.attacker.frame = 0  # 공격 애니메이션 처음부터
+        self.hitbox_created = False
 
     def exit(self, e):
         pass
@@ -186,6 +197,40 @@ class Attack:
         # 공격 애니메이션 프레임 업데이트 (5프레임)
         self.attacker.frame = (self.attacker.frame + 10 * game_framework.frame_time) % 5
         self.attack_timer += game_framework.frame_time
+
+        # 딜레이 후 히트박스 생성
+        if not self.hitbox_created and self.attack_timer >= self.hitbox_delay:
+            from attack_hitbox import AttackHitbox
+
+            # 기본 바운딩박스 크기: 44x44 (half_size = 22)
+            # 좌우 공격: 가로 11 (44/4), 세로 44
+            # 상하 공격: 가로 44, 세로 11 (44/4)
+            # 오프셋: 바운딩박스 경계 + 히트박스 반지름 = 22 + 5.5 ≈ 28
+
+            offset_x, offset_y = 0, 0
+            width, height = 0, 0
+
+            if self.attacker.face_dir == 1:  # 오른쪽
+                offset_x = 28
+                width, height = 11, 44
+            elif self.attacker.face_dir == -1:  # 왼쪽
+                offset_x = -28
+                width, height = 11, 44
+            elif self.attacker.face_dir == 4:  # 위
+                offset_y = 28
+                width, height = 44, 11
+            elif self.attacker.face_dir == 0:  # 아래
+                offset_y = -28
+                width, height = 44, 11
+
+            hitbox = AttackHitbox(self.attacker,
+                                 self.attacker.x + offset_x,
+                                 self.attacker.y + offset_y,
+                                 width, height, 0.3)
+            game_world.add_object(hitbox, 3)
+            game_world.add_collision_pair('monster_attack:player', hitbox, None)
+            self.hitbox_created = True
+            print(f"Attacker hitbox created at {self.attack_timer:.2f}s")
 
         # 제자리에서 공격 - 이동 코드 없음!
         # self.attacker.x, self.attacker.y 변경하지 않음
@@ -213,6 +258,10 @@ class Attack:
                     self.attacker.MOVE.enter(('ATTACK_END', None))
 
     def draw(self):
+        # 깜빡임 처리
+        if self.attacker.hit_timer > 0 and int(self.attacker.hit_timer * 10) % 2 == 1:
+            return
+
         # face_dir에 따른 스프라이트 선택 및 flip 처리
         dir_key = abs(self.attacker.face_dir) if abs(self.attacker.face_dir) == 1 else self.attacker.face_dir
 
@@ -246,10 +295,21 @@ class EnemyAttacker:
         self.target_player = player
         self.attack_range = 60  # 매우 가까운 거리에서만 공격
         self.chase_speed = 70  # 중간 속도
-        self.attack_cooldown = 1.5  # 빠른 쿨타임
+        self.attack_cooldown = 3.0  # 쿨타임 3.0초
         self.cooldown_timer = 0
-        self.chase_range = 400  # 400픽셀 이내만 추적
+        self.chase_range = 300  # 300픽셀 이내만 추적
         self.background = None  # 벽 충돌용
+
+        # 체력 시스템
+        self.hp = 2
+        self.is_dead = False
+
+        # 피격 깜빡임 시스템
+        self.hit_timer = 0
+        self.hit_duration = 0.5
+
+        # 중복 히트 방지 (이미 맞은 히트박스 추적)
+        self.hit_by_hitboxes = set()
 
         # 상태 생성
         self.IDLE = Idle(self)
@@ -261,6 +321,10 @@ class EnemyAttacker:
 
     def update(self):
         self.state_machine.update()
+
+        # 피격 깜빡임 타이머 감소
+        if self.hit_timer > 0:
+            self.hit_timer -= game_framework.frame_time
 
     def draw(self, camera=None):
         # 스크롤링: 플레이어 기준으로 화면 좌표 계산
@@ -287,4 +351,32 @@ class EnemyAttacker:
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22
 
     def handle_collision(self, group, other):
-        pass
+        # 이미 죽었으면 무시
+        if self.is_dead:
+            return
+
+        if group == 'player_attack:monster':
+            # 같은 히트박스로부터는 한 번만 데미지 받기
+            if other in self.hit_by_hitboxes:
+                return
+            self.hit_by_hitboxes.add(other)
+
+            self.hp -= 1
+            print(f"Attacker hit! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Attacker defeated!")
+
+        elif group == 'arrow:monster':
+            # 화살은 별도 처리 (화살 자체가 한 번만 맞음)
+            self.hp -= 1
+            print(f"Attacker hit by arrow! HP: {self.hp}")
+
+            if self.hp <= 0:
+                self.is_dead = True
+                import game_world
+                game_world.remove_object(self)
+                print("Attacker defeated!")
