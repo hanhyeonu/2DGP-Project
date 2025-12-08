@@ -117,6 +117,24 @@ class Background:
         self.window_left = clamp(0, int(self.player.x) - self.camera_width // 2, self.world_width - self.camera_width)
         self.window_bottom = clamp(0, int(self.player.y) - self.camera_height // 2, self.world_height - self.camera_height)
 
+        # 마을맵 (map_type 0) - 전체 배경 이미지로 그리기
+        if self.current_map_type == 0:
+            # 월드 좌표 (0, 0) ~ (2048, 2048)를 스크린 좌표로 변환
+            # 배경 중심점 계산
+            bg_world_x = self.world_width // 2
+            bg_world_y = self.world_height // 2
+            bg_screen_x = (bg_world_x - self.window_left) * self.zoom
+            bg_screen_y = (bg_world_y - self.window_bottom) * self.zoom
+            bg_width = int(self.world_width * self.zoom)
+            bg_height = int(self.world_height * self.zoom)
+
+            # 먼저 base_grass_cc.png로 배경 전체 그리기
+            self.tile_images['base_grass'].draw(bg_screen_x, bg_screen_y, bg_width, bg_height)
+            # 그 위에 kyoten.png로 덮기
+            self.tile_images['kyoten'].draw(bg_screen_x, bg_screen_y, bg_width, bg_height)
+            return
+
+        # 보스맵과 던전맵은 타일맵으로 그리기
         # 타일 그리기
         start_tile_x = self.window_left // self.TILE_SIZE
         end_tile_x = min((self.window_left + self.camera_width) // self.TILE_SIZE + 1, self.TILES_X)
@@ -135,15 +153,8 @@ class Background:
                 # 타일 크기도 줌 적용
                 tile_size = int(self.TILE_SIZE * self.zoom)
 
-                # 마을맵 (map_type 0) - base_grass_cc.png + kyoten.png 타일로 전체 덮기
-                if self.current_map_type == 0:
-                    # 먼저 base_grass_cc.png로 배경 그리기
-                    self.tile_images['base_grass'].draw(screen_x, screen_y, tile_size, tile_size)
-                    # 그 위에 kyoten.png로 덮기
-                    self.tile_images['kyoten'].draw(screen_x, screen_y, tile_size, tile_size)
-
                 # 보스맵 (map_type 3) - ground3.png 타일로 전체 덮기
-                elif self.current_map_type == 3:
+                if self.current_map_type == 3:
                     self.tile_images['ground3'].draw(screen_x, screen_y, tile_size, tile_size)
 
                 # 던전맵 (map_type 1, 2) - 타일 데이터에 따라 그리기

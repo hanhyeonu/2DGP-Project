@@ -10,6 +10,7 @@ from enemy_slime import EnemySlime
 from enemy_attacker import EnemyAttacker
 from enemy_bommer import EnemyBommer
 from gate import Gate
+from forest_boss import ForestBoss
 
 # 맵별 몬스터 리스트
 map1_frogs = []
@@ -21,6 +22,9 @@ map2_bommers = []
 current_gate = None
 last_monster_pos = None  # 마지막으로 죽은 몬스터 위치
 gate_created_for_map = -1  # 이미 게이트가 생성된 맵
+
+# 보스 관리
+boss = None
 
 # 맵1 방 좌표 (player 시작 방 제외)
 MAP1_ROOMS = [
@@ -114,7 +118,7 @@ def create_map2_monsters():
 
 def clear_all_monsters():
     """모든 몬스터 제거"""
-    global map1_frogs, map1_slimes, map2_attackers, map2_bommers
+    global map1_frogs, map1_slimes, map2_attackers, map2_bommers, boss
 
     all_monsters = map1_frogs + map1_slimes + map2_attackers + map2_bommers
     for monster in all_monsters:
@@ -125,6 +129,30 @@ def clear_all_monsters():
     map1_slimes = []
     map2_attackers = []
     map2_bommers = []
+
+    # 보스도 제거
+    if boss and boss in game_world.objects[2]:
+        game_world.remove_object(boss)
+    boss = None
+
+
+def create_boss():
+    """보스 몬스터 생성"""
+    global boss
+
+    # 기존 보스 제거
+    if boss and boss in game_world.objects[2]:
+        game_world.remove_object(boss)
+
+    # 새 보스 생성
+    boss = ForestBoss(player)
+    game_world.add_object(boss, 2)
+
+    # 보스-플레이어 충돌 쌍 등록
+    game_world.add_collision_pair('player_attack:monster', None, boss)
+    game_world.add_collision_pair('arrow:monster', None, boss)
+
+    print("Boss created!")
 
 
 def create_gate(x, y):
@@ -222,6 +250,7 @@ def transition_to_next_map():
         clear_all_monsters()
         remove_gate()
         gate_created_for_map = -1
+        create_boss()
         print("맵3로 전환 - 보스맵")
 
 
@@ -265,6 +294,7 @@ def handle_events():
             clear_all_monsters()
             remove_gate()
             gate_created_for_map = -1
+            create_boss()
             print("맵3로 전환 - 보스맵")
         else:
             common.player.handle_event(event)
