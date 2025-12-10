@@ -47,10 +47,10 @@ class Gate:
         )
 
         # 바운딩 박스 그리기
-        draw_rectangle(
-            screen_x - bb_half_width, screen_y - bb_half_height,
-            screen_x + bb_half_width, screen_y + bb_half_height
-        )
+        # draw_rectangle(
+        #     screen_x - bb_half_width, screen_y - bb_half_height,
+        #     screen_x + bb_half_width, screen_y + bb_half_height
+        # )
 
     def get_bb(self):
         """바운딩 박스 (48x64)"""

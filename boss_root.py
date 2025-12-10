@@ -79,11 +79,11 @@ class BossRoot:
             )
 
         # 바운딩 박스 (히트박스 활성화 시에만)
-        if self.hitbox_active:
-            draw_rectangle(
-                screen_x - bb_half_width, screen_y - bb_half_height,
-                screen_x + bb_half_width, screen_y + bb_half_height
-            )
+        # if self.hitbox_active:
+        #     draw_rectangle(
+        #         screen_x - bb_half_width, screen_y - bb_half_height,
+        #         screen_x + bb_half_width, screen_y + bb_half_height
+        #     )
 
     def get_bb(self):
         """바운딩 박스 (히트박스 활성화 시에만)"""

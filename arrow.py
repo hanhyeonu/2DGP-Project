@@ -101,10 +101,10 @@ class Arrow:
         self.image.composite_draw(self.angle, '', screen_x, screen_y, size, size)
 
         # 바운딩 박스 그리기
-        draw_rectangle(
-            screen_x - bb_half_size, screen_y - bb_half_size,
-            screen_x + bb_half_size, screen_y + bb_half_size
-        )
+        # draw_rectangle(
+        #     screen_x - bb_half_size, screen_y - bb_half_size,
+        #     screen_x + bb_half_size, screen_y + bb_half_size
+        # )
 
     def get_bb(self):
         return self.x - 10, self.y - 10, self.x + 10, self.y + 10

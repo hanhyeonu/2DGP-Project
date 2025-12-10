@@ -342,10 +342,10 @@ class EnemyAttacker:
         self.state_machine.draw()
 
         # 바운딩 박스도 화면 좌표로
-        draw_rectangle(
-            self.draw_x - bb_half_size, self.draw_y - bb_half_size,
-            self.draw_x + bb_half_size, self.draw_y + bb_half_size
-        )
+        # draw_rectangle(
+        #     self.draw_x - bb_half_size, self.draw_y - bb_half_size,
+        #     self.draw_x + bb_half_size, self.draw_y + bb_half_size
+        # )
 
     def get_bb(self):
         return self.x - 22, self.y - 22, self.x + 22, self.y + 22

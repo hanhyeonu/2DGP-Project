@@ -476,14 +476,14 @@ class Player:
         self.draw_health_bar(screen_x, screen_y)
 
         # 바운딩 박스 (화면 좌표 기준)
-        if self.background:
-            bb_half_size = int(12 * self.background.zoom)
-        else:
-            bb_half_size = 12
-        draw_rectangle(
-            screen_x - bb_half_size, screen_y - bb_half_size,
-            screen_x + bb_half_size, screen_y + bb_half_size
-        )
+        # if self.background:
+        #     bb_half_size = int(12 * self.background.zoom)
+        # else:
+        #     bb_half_size = 12
+        # draw_rectangle(
+        #     screen_x - bb_half_size, screen_y - bb_half_size,
+        #     screen_x + bb_half_size, screen_y + bb_half_size
+        # )
 
     def get_bb(self):
         return self.x - 12, self.y - 12, self.x + 12, self.y + 12

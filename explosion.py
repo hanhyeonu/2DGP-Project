@@ -53,10 +53,10 @@ class Explosion:
             self.image.clip_draw(frame_index * 32, 0, 32, 32, screen_x, screen_y, draw_width, draw_height)
 
         # 바운딩 박스 그리기
-        draw_rectangle(
-            screen_x - bb_half_size, screen_y - bb_half_size,
-            screen_x + bb_half_size, screen_y + bb_half_size
-        )
+        # draw_rectangle(
+        #     screen_x - bb_half_size, screen_y - bb_half_size,
+        #     screen_x + bb_half_size, screen_y + bb_half_size
+        # )
 
     def get_bb(self):
         """바운딩 박스 (64x64로 2배)"""

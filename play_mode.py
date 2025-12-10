@@ -246,7 +246,7 @@ def transition_to_next_map():
     elif current_map == 2:  # 맵2 -> 맵3
         common.background.set_map(3)
         common.player.x = 1056
-        common.player.y = 992
+        common.player.y = 492  # 500 아래로 이동 (992 - 500 = 492)
         clear_all_monsters()
         remove_gate()
         gate_created_for_map = -1
@@ -290,7 +290,7 @@ def handle_events():
             # 맵3로 (테스트용)
             common.background.set_map(3)
             common.player.x = 1056
-            common.player.y = 992
+            common.player.y = 492  # 500 아래로 이동 (992 - 500 = 492)
             clear_all_monsters()
             remove_gate()
             gate_created_for_map = -1

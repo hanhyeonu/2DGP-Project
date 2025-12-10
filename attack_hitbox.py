@@ -43,7 +43,7 @@ class AttackHitbox:
             screen_x, screen_y = x, y
             hw, hh = self.half_width, self.half_height
 
-        draw_rectangle(screen_x - hw, screen_y - hh, screen_x + hw, screen_y + hh)
+        # draw_rectangle(screen_x - hw, screen_y - hh, screen_x + hw, screen_y + hh)
 
     def get_bb(self):
         # owner의 현재 위치 + offset

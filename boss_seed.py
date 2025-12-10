@@ -53,10 +53,10 @@ class BossSeed:
         self.image.draw(screen_x, screen_y, size, size)
 
         # 바운딩 박스
-        draw_rectangle(
-            screen_x - bb_half_size, screen_y - bb_half_size,
-            screen_x + bb_half_size, screen_y + bb_half_size
-        )
+        # draw_rectangle(
+        #     screen_x - bb_half_size, screen_y - bb_half_size,
+        #     screen_x + bb_half_size, screen_y + bb_half_size
+        # )
 
     def get_bb(self):
         """바운딩 박스"""
